@@ -1,40 +1,44 @@
 package org.rmatil.sync.persistence.api;
 
-import net.tomp2p.dht.*;
-import net.tomp2p.futures.BaseFutureAdapter;
+import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
+/**
+ * An adapter for various storage implementations.
+ * This could include implementations for local storage, Dropbox, ...
+ */
 public interface IStorageAdapter {
 
     /**
-     * Get some data from the DHT asynchronously, specified by the properties in the getBuilder.
-     * <i>Note, that the builder must not have invoked start yet.</i>
+     * Persists the given bytes at the given path
      *
-     * @param getBuilder  The builder to specify the data to get
-     * @param getListener The listener, which should be called on completion of the future
+     * @param type  The type of path which should be created
+     * @param path  The path used to identify the data
+     * @param bytes The bytes to store (may be null if storageType is a directory)
      *
-     * @return FutureGet The future returned by the builder
+     * @throws InputOutputException If an error occurred during persisting
      */
-    FutureGet getData(GetBuilder getBuilder, BaseFutureAdapter<FutureGet> getListener);
+    void persist(StorageType type, IPathElement path, byte[] bytes)
+            throws InputOutputException;
 
     /**
-     * Put some data to the DHT asynchronously.
-     * <i>Note, that the builder must not have invoked start yet.</i>
+     * Deletes the content stored at path
      *
-     * @param putBuilder  The builder containing the data.
-     * @param putListener The listener which should called on completion of the future
+     * @param path The path to remove
      *
-     * @return FuturePut The future returned by the builder
+     * @throws InputOutputException If an error occurred during deletion
      */
-    FuturePut putData(PutBuilder putBuilder, BaseFutureAdapter<FuturePut> putListener);
+    void delete(IPathElement path)
+            throws InputOutputException;
 
     /**
-     * Remove some data asynchronously from the DHT.
-     * <i>Note, that the builder must not have invoked start yet.</i>
+     * Reads the contents stored at path
      *
-     * @param removeBuilder  The builder which specifies the object to remove
-     * @param removeListener The listener which should be called on completion of the future
+     * @param path The path from which to read
      *
-     * @return FutureRemove The future returned by the builder
+     * @return The content as byte array
+     *
+     * @throws InputOutputException If an error occurred during reading
      */
-    FutureRemove removeData(RemoveBuilder removeBuilder, BaseFutureAdapter<FutureRemove> removeListener);
+    byte[] read(IPathElement path)
+            throws InputOutputException;
 }
