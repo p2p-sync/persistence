@@ -1,9 +1,9 @@
-package org.rmatil.sync.persistence.api.dht;
+package org.rmatil.sync.persistence.api;
 
 import net.tomp2p.dht.*;
 import net.tomp2p.futures.BaseFutureAdapter;
 
-public interface IDhtPersistenceManager {
+public interface IStorageAdapter {
 
     /**
      * Get some data from the DHT asynchronously, specified by the properties in the getBuilder.
