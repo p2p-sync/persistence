@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class LocalStorageAdapterTest {
@@ -151,5 +152,12 @@ public class LocalStorageAdapterTest {
 
         localStorageAdapter.read(path);
 
+    }
+
+    @Test
+    public void testGetRootDir() {
+        Path rootDir = localStorageAdapter.getRootDir();
+
+        assertEquals("Root directory is not the same", ROOT_TEST_DIR, rootDir);
     }
 }

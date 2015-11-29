@@ -2,6 +2,8 @@ package org.rmatil.sync.persistence.api;
 
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
+import java.nio.file.Path;
+
 /**
  * An adapter for various storage implementations.
  * This could include implementations for local storage, Dropbox, ...
@@ -41,4 +43,11 @@ public interface IStorageAdapter {
      */
     byte[] read(IPathElement path)
             throws InputOutputException;
+
+    /**
+     * Returns the root directory of this storage adapter
+     *
+     * @return The root directory of this storage adapter
+     */
+    Path getRootDir();
 }

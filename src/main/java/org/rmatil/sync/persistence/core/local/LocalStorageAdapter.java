@@ -61,6 +61,10 @@ public class LocalStorageAdapter implements IStorageAdapter {
         }
     }
 
+    public Path getRootDir() {
+        return this.rootDir;
+    }
+
     /**
      * Creates a directory on the given file path
      *
