@@ -12,6 +12,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 
 import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
 
 /**
@@ -26,7 +27,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
 
     public LocalStorageAdapter(Path rootDir) {
         this.rootDir = rootDir;
-        this.optionOptions = new OpenOption[]{WRITE, CREATE};
+        this.optionOptions = new OpenOption[]{WRITE, CREATE, TRUNCATE_EXISTING};
     }
 
     public void persist(StorageType type, IPathElement path, byte[] bytes)
