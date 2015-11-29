@@ -61,6 +61,23 @@ public class LocalStorageAdapter implements IStorageAdapter {
         }
     }
 
+    public boolean exists(StorageType storageType, IPathElement path) {
+        Path filePath = rootDir.resolve(path.getPath());
+
+        if (! filePath.toFile().exists()) {
+            return false;
+        }
+
+        switch (storageType) {
+            case FILE:
+                return filePath.toFile().isFile();
+            case DIRECTORY:
+                return filePath.toFile().isDirectory();
+        }
+
+        return false;
+    }
+
     public Path getRootDir() {
         return this.rootDir;
     }

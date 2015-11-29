@@ -1,5 +1,6 @@
 package org.rmatil.sync.persistence.api;
 
+import net.tomp2p.dht.Storage;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
 import java.nio.file.Path;
@@ -43,6 +44,16 @@ public interface IStorageAdapter {
      */
     byte[] read(IPathElement path)
             throws InputOutputException;
+
+    /**
+     * Checks whether the given path already exists
+     *
+     * @param storageType The storage type to check for
+     * @param path        The path to check
+     *
+     * @return Returns true, if existing, false otherwise
+     */
+    boolean exists(StorageType storageType, IPathElement path);
 
     /**
      * Returns the root directory of this storage adapter

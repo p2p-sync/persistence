@@ -14,9 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class LocalStorageAdapterTest {
 
@@ -159,5 +157,34 @@ public class LocalStorageAdapterTest {
         Path rootDir = localStorageAdapter.getRootDir();
 
         assertEquals("Root directory is not the same", ROOT_TEST_DIR, rootDir);
+    }
+
+    @Test
+    public void testExists()
+            throws InputOutputException {
+        IPathElement path = new PathElement(Config.DEFAULT.getTestFileName1());
+        String content = "Content";
+
+        assertFalse("Exist false failed", localStorageAdapter.exists(StorageType.FILE, path));
+
+        localStorageAdapter.persist(StorageType.FILE, path, content.getBytes());
+
+        assertTrue("Exist failed", localStorageAdapter.exists(StorageType.FILE, path));
+
+        localStorageAdapter.delete(path);
+
+        assertFalse("Exist false failed after deletion", localStorageAdapter.exists(StorageType.FILE, path));
+
+        IPathElement dir = new PathElement("testDir");
+
+        assertFalse("Exist false failed before dir creation", localStorageAdapter.exists(StorageType.DIRECTORY, dir));
+
+        localStorageAdapter.persist(StorageType.DIRECTORY, dir, null);
+
+        assertTrue("Exist failed after dir creation", localStorageAdapter.exists(StorageType.DIRECTORY, dir));
+
+        localStorageAdapter.delete(dir);
+
+        assertFalse("Exist failed after dir deletion", localStorageAdapter.exists(StorageType.DIRECTORY, dir));
     }
 }
