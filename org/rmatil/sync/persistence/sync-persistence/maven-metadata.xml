@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>org.rmatil.sync.persistence</groupId>
+  <artifactId>sync-persistence</artifactId>
+  <versioning>
+    <versions>
+      <version>0.1-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20151202102846</lastUpdated>
+  </versioning>
+</metadata>
