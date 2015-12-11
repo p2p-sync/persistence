@@ -52,8 +52,11 @@ public interface IStorageAdapter {
      * @param path        The path to check
      *
      * @return Returns true, if existing, false otherwise
+     *
+     * @throws InputOutputException If an error occurred during checking for existence
      */
-    boolean exists(StorageType storageType, IPathElement path);
+    boolean exists(StorageType storageType, IPathElement path)
+            throws InputOutputException;
 
     /**
      * Returns the root directory of this storage adapter
