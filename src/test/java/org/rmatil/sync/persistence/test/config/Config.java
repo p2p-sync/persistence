@@ -9,11 +9,12 @@ public enum Config {
 
     private Path rootTestDir;
 
-    private       String testFileName1   = "file1.txt";
-    private       String testIpV4Address = "127.0.0.1";
-    private       String testLocationKey = "testLocation";
-    private       int    testPort        = 4001;
-    private final Random RND             = new Random(42L);
+    private       String testFileName1    = "file1.txt";
+    private       String testIpV4Address  = "127.0.0.1";
+    private       String testLocationKey1 = "user1";
+    private String       testLocationKey2 = "user2";
+    private       int    testPort         = 4001;
+    private final Random RND              = new Random(42L);
 
 
     Config() {
@@ -40,8 +41,11 @@ public enum Config {
         return this.RND;
     }
 
-    public String getTestLocationKey() {
-        return testLocationKey;
+    public String getTestLocationKey1() {
+        return testLocationKey1;
     }
 
+    public String getTestLocationKey2() {
+        return testLocationKey2;
+    }
 }

@@ -1,6 +1,10 @@
 package org.rmatil.sync.persistence.core.dht;
 
+import net.tomp2p.peers.Number160;
+import net.tomp2p.utils.Utils;
 import org.rmatil.sync.persistence.api.IPathElement;
+
+import java.security.PublicKey;
 
 /**
  * A path element representing data in the DHT
@@ -13,10 +17,17 @@ public class DhtPathElement implements IPathElement {
     protected String contentKey;
 
     /**
-     * @param contentKey A string which gets used as content key in the DHT
+     * The domain protection key which should be used
      */
-    public DhtPathElement(String contentKey) {
+    protected Number160 domainProtectionKey;
+
+    /**
+     * @param contentKey A string which gets used as content key in the DHT
+     * @param domainProtectionKey A public key which is used for to access and/or modify the path in the DHT
+     */
+    public DhtPathElement(String contentKey, PublicKey domainProtectionKey) {
         this.contentKey = contentKey;
+        this.domainProtectionKey = Utils.makeSHAHash(domainProtectionKey.getEncoded());
     }
 
     /**
@@ -27,5 +38,15 @@ public class DhtPathElement implements IPathElement {
     @Override
     public String getPath() {
         return this.contentKey;
+    }
+
+    /**
+     * Returns the domain protection key which is used
+     * to access and/or modify the content in the DHT
+     *
+     * @return The domain protection key
+     */
+    public Number160 getDomainProtectionKey() {
+        return domainProtectionKey;
     }
 }
