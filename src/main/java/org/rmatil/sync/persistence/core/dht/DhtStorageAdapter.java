@@ -4,7 +4,6 @@ import net.tomp2p.dht.FutureGet;
 import net.tomp2p.dht.FuturePut;
 import net.tomp2p.dht.FutureRemove;
 import net.tomp2p.dht.PeerDHT;
-import net.tomp2p.peers.Number160;
 import net.tomp2p.storage.Data;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
@@ -20,8 +19,6 @@ import java.nio.file.Path;
 public class DhtStorageAdapter implements IStorageAdapter {
 
     protected final PeerDHT dht;
-
-    protected final Number160 locationKey;
 
     /**
      * Creates a storage adapter for the DHT. This storage adapter is dedicated
@@ -47,11 +44,15 @@ public class DhtStorageAdapter implements IStorageAdapter {
      * </pre>
      *
      * @param dht                 A PeerDHT bootstrapped with domain protection
-     * @param locationKey         A location key for this storage adapter (e.g. the user's name)
      */
-    public DhtStorageAdapter(PeerDHT dht, String locationKey) {
+    public DhtStorageAdapter(PeerDHT dht) {
+        if (null == dht.peerBean().keyPair().getPublic() ||
+                null == dht.peerBean().keyPair().getPrivate()) {
+            // we require a public private key pair to protect domains
+            throw new IllegalArgumentException("The given peer dht must have a public private keypair set");
+        }
+
         this.dht = dht;
-        this.locationKey = Number160.createHash(locationKey);
     }
 
     @Override
@@ -68,12 +69,12 @@ public class DhtStorageAdapter implements IStorageAdapter {
 
         Data data = new Data(bytes);
 
-        FuturePut futurePut = this.dht
-                .put(this.locationKey)
-                .data(Number160.createHash(path.getPath()), data)
-                .protectDomain()
-                .domainKey(((DhtPathElement) path).getDomainProtectionKey())
-                .start();
+            FuturePut futurePut = this.dht
+                    .put(((DhtPathElement) path).getLocationKey())
+                    .data(((DhtPathElement) path).getContentKey(), data)
+                    .protectDomain()
+                    .domainKey(((DhtPathElement) path).getDomainKey())
+                    .start();
 
         futurePut.addListener(
                 new DhtPutListener(this.dht)
@@ -96,10 +97,10 @@ public class DhtStorageAdapter implements IStorageAdapter {
         }
 
         FutureRemove futureRemove = this.dht
-                .remove(this.locationKey)
-                .contentKey(Number160.createHash(path.getPath()))
+                .remove(((DhtPathElement) path).getLocationKey())
+                .contentKey(((DhtPathElement) path).getContentKey())
                 .protectDomain()
-                .domainKey(((DhtPathElement) path).getDomainProtectionKey())
+                .domainKey(((DhtPathElement) path).getDomainKey())
                 .start();
 
         futureRemove.addListener(
@@ -124,10 +125,9 @@ public class DhtStorageAdapter implements IStorageAdapter {
         }
 
         FutureGet futureGet = this.dht
-                .get(this.locationKey)
-                .contentKey(Number160.createHash(path.getPath()))
-                .protectDomain()
-                .domainKey(((DhtPathElement) path).getDomainProtectionKey())
+                .get(((DhtPathElement) path).getLocationKey())
+                .contentKey(((DhtPathElement) path).getContentKey())
+                .domainKey(((DhtPathElement) path).getDomainKey())
                 .start();
 
         futureGet.addListener(
@@ -161,10 +161,9 @@ public class DhtStorageAdapter implements IStorageAdapter {
         }
 
         FutureGet futureGet = this.dht
-                .get(this.locationKey)
-                .contentKey(Number160.createHash(path.getPath()))
-                .protectDomain()
-                .domainKey(((DhtPathElement) path).getDomainProtectionKey())
+                .get(((DhtPathElement) path).getLocationKey())
+                .contentKey(((DhtPathElement) path).getContentKey())
+                .domainKey(((DhtPathElement) path).getDomainKey())
                 .start();
 
         futureGet.addListener(

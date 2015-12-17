@@ -4,7 +4,7 @@ import net.tomp2p.peers.Number160;
 import net.tomp2p.utils.Utils;
 import org.rmatil.sync.persistence.api.IPathElement;
 
-import java.security.Key;
+import java.security.KeyPair;
 
 /**
  * A path element representing data in the DHT
@@ -12,22 +12,49 @@ import java.security.Key;
 public class DhtPathElement implements IPathElement {
 
     /**
+     * The location key of the path element which should be used
+     * (e.g. the hash of the user's name)
+     */
+    protected Number160 locationKey;
+
+    /**
+     * The raw location key
+     */
+    protected String rawLocationKey;
+
+    /**
      * The content key of the path element which should be used
+     * (e.g. the hash of the string "LOCATIONS")
      */
-    protected String contentKey;
+    protected Number160 contentKey;
 
     /**
-     * The domain protection key which should be used
+     * The raw content key
      */
-    protected Number160 domainProtectionKey;
+    protected String rawContentKey;
 
     /**
+     * The domain key which should be used
+     */
+    protected Number160 domainKey;
+
+    /**
+     * The raw domain key
+     */
+    protected String rawDomainKey;
+
+    /**
+     * @param locationKey A string which is used as location key in the DHT
      * @param contentKey A string which gets used as content key in the DHT
-     * @param domainProtectionKey A public key which is used to access the path in the DHT
+     * @param domainKey A public key which is used to access the path in the DHT
      */
-    public DhtPathElement(String contentKey, Key domainProtectionKey) {
-        this.contentKey = contentKey;
-        this.domainProtectionKey = Utils.makeSHAHash(domainProtectionKey.getEncoded());
+    public DhtPathElement(String locationKey, String contentKey, String domainKey) {
+        this.locationKey = Utils.makeSHAHash(locationKey);
+        this.rawLocationKey = locationKey;
+        this.contentKey = Utils.makeSHAHash(contentKey);
+        this.rawContentKey = contentKey;
+        this.domainKey = Utils.makeSHAHash(domainKey);
+        this.rawDomainKey = domainKey;
     }
 
     /**
@@ -37,7 +64,7 @@ public class DhtPathElement implements IPathElement {
      */
     @Override
     public String getPath() {
-        return this.contentKey;
+        return this.contentKey.toString();
     }
 
     /**
@@ -46,7 +73,27 @@ public class DhtPathElement implements IPathElement {
      *
      * @return The domain protection key
      */
-    public Number160 getDomainProtectionKey() {
-        return domainProtectionKey;
+    public Number160 getDomainKey() {
+        return domainKey;
+    }
+
+    public Number160 getLocationKey() {
+        return locationKey;
+    }
+
+    public String getRawLocationKey() {
+        return rawLocationKey;
+    }
+
+    public Number160 getContentKey() {
+        return contentKey;
+    }
+
+    public String getRawContentKey() {
+        return rawContentKey;
+    }
+
+    public String getRawDomainKey() {
+        return rawDomainKey;
     }
 }

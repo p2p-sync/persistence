@@ -8,6 +8,7 @@ import net.tomp2p.dht.StorageLayer;
 import net.tomp2p.futures.FutureBootstrap;
 import net.tomp2p.futures.FutureDiscover;
 import net.tomp2p.p2p.PeerBuilder;
+import net.tomp2p.peers.Number160;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.rmatil.sync.persistence.api.IPathElement;
@@ -46,9 +47,7 @@ public class DhtStorageAdapterTest {
     protected static KeyPair keyPair1;
     protected static KeyPair keyPair2;
 
-    protected static IPathElement path1;
-    protected static IPathElement path2;
-    protected static byte[] data = "Some content".getBytes();
+    protected static IPathElement path1;protected static byte[] data = "Some content".getBytes();
 
     @BeforeClass
     public static void setup()
@@ -61,21 +60,23 @@ public class DhtStorageAdapterTest {
         keyPair2 = generator.genKeyPair();
 
         // bootstrap peer
-        peer1 = new PeerBuilderDHT(new PeerBuilder(keyPair1).ports(Config.DEFAULT.getTestPort()).bindings(b).start()).start();
+        // set keypair for domain protection
+        peer1 = new PeerBuilderDHT(new PeerBuilder(Number160.ONE).keyPair(keyPair1).ports(Config.DEFAULT.getTestPort()).bindings(b).start()).start();
         peer1.storageLayer().protection(
-                StorageLayer.ProtectionEnable.NONE,
-                StorageLayer.ProtectionMode.MASTER_PUBLIC_KEY,
                 StorageLayer.ProtectionEnable.ALL,
-                StorageLayer.ProtectionMode.MASTER_PUBLIC_KEY
+                StorageLayer.ProtectionMode.NO_MASTER,
+                StorageLayer.ProtectionEnable.ALL,
+                StorageLayer.ProtectionMode.NO_MASTER
         );
 
         // connect to bootstrap peer
-        peer2 = new PeerBuilderDHT(new PeerBuilder(keyPair2).masterPeer(peer1.peer()).start()).start();
-        peer1.storageLayer().protection(
-                StorageLayer.ProtectionEnable.NONE,
-                StorageLayer.ProtectionMode.MASTER_PUBLIC_KEY,
+        // set keypair for domain protection
+        peer2 = new PeerBuilderDHT(new PeerBuilder(Number160.createHash(2)).keyPair(keyPair2).masterPeer(peer1.peer()).start()).start();
+        peer2.storageLayer().protection(
                 StorageLayer.ProtectionEnable.ALL,
-                StorageLayer.ProtectionMode.MASTER_PUBLIC_KEY
+                StorageLayer.ProtectionMode.NO_MASTER,
+                StorageLayer.ProtectionEnable.ALL,
+                StorageLayer.ProtectionMode.NO_MASTER
         );
 
         InetAddress connectionAddress = Inet4Address.getByName(Config.DEFAULT.getTestIpV4Address());
@@ -92,11 +93,10 @@ public class DhtStorageAdapterTest {
             logger.error("Failed to bootstrap peers. Reason: " + futureBootstrap.failedReason());
         }
 
-        path1 = new DhtPathElement("content key", keyPair1.getPublic());
-        path2 = new DhtPathElement("content key", keyPair2.getPublic());
+        path1 = new DhtPathElement("location key", "content key", "domain-key");
 
-        dhtStorageAdapter1 = new DhtStorageAdapter(peer1, Config.DEFAULT.getTestLocationKey1());
-        dhtStorageAdapter2 = new DhtStorageAdapter(peer2, Config.DEFAULT.getTestLocationKey1());
+        dhtStorageAdapter1 = new DhtStorageAdapter(peer1);
+        dhtStorageAdapter2 = new DhtStorageAdapter(peer2);
 
     }
 
@@ -127,11 +127,7 @@ public class DhtStorageAdapterTest {
 
         // should be the same since path has the same protection key
         byte[] receivedContent2 = dhtStorageAdapter2.read(path1);
-        assertArrayEquals("Content should be empty", data, receivedContent2);
-
-        // since we use another path, i.e. another protection key, no data should be returned
-        byte[] receivedContent3 = dhtStorageAdapter2.read(path2);
-        assertArrayEquals("Content should be empty", new byte[0], receivedContent3);
+        assertArrayEquals("Content should not be empty", data, receivedContent2);
     }
 
     @Test
@@ -139,7 +135,7 @@ public class DhtStorageAdapterTest {
             throws InputOutputException {
         thrown.expect(InputOutputException.class);
 
-        IPathElement path = new DhtPathElement("some Content Key", keyPair1.getPublic());
+        IPathElement path = new DhtPathElement("username1", "content key 2", "domain key 2");
 
         dhtStorageAdapter1.persist(StorageType.DIRECTORY, path, null);
     }
@@ -155,7 +151,9 @@ public class DhtStorageAdapterTest {
         byte[] receivedData2 = dhtStorageAdapter2.read(path1);
         assertArrayEquals("Content is not the same", data, receivedData2);
 
-        dhtStorageAdapter2.delete(path2);
+        // try to delete path which is on the location key & content
+        // key of path1 but has a different key pair: This should fail
+        dhtStorageAdapter2.delete(path1);
 
         byte[] receivedData3 = dhtStorageAdapter2.read(path1);
         assertArrayEquals("Content should not be empty after deleting path2", data, receivedData3);
@@ -184,14 +182,9 @@ public class DhtStorageAdapterTest {
 
         boolean exists1 = dhtStorageAdapter1.exists(StorageType.FILE, path1);
         boolean exists2 = dhtStorageAdapter2.exists(StorageType.FILE, path1);
-        boolean exists3 = dhtStorageAdapter1.exists(StorageType.FILE, path2);
-        boolean exists4 = dhtStorageAdapter2.exists(StorageType.FILE, path2);
 
         assertTrue("File does not exist apparently", exists1);
         assertTrue("File does not exist apparently", exists2);
-
-        assertFalse("File should not exist", exists3);
-        assertFalse("File should not exist", exists4);
 
         dhtStorageAdapter1.delete(path1);
 
@@ -258,6 +251,15 @@ public class DhtStorageAdapterTest {
 
         thrown.expect(InputOutputException.class);
         dhtStorageAdapter1.exists(StorageType.FILE, pathElement);
+    }
+
+    @Test
+    public void testIllegalArgumentException()
+            throws IOException {
+        thrown.expect(IllegalArgumentException.class);
+
+        PeerDHT tmpPeer = new PeerBuilderDHT(new PeerBuilder(Number160.createHash(50)).start()).start();
+        DhtStorageAdapter tmpAdapter = new DhtStorageAdapter(tmpPeer);
     }
 
 }
