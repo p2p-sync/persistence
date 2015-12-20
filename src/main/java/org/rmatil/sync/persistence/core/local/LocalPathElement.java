@@ -5,7 +5,7 @@ import org.rmatil.sync.persistence.api.IPathElement;
 /**
  * An element which represents a certain file or directory on disk
  */
-public class PathElement implements IPathElement {
+public class LocalPathElement implements IPathElement {
 
     /**
      * The path to the file or directory
@@ -17,7 +17,7 @@ public class PathElement implements IPathElement {
      *
      * @param path The path to the file or directory
      */
-    public PathElement(String path) {
+    public LocalPathElement(String path) {
         this.path = path;
     }
 
