@@ -5,14 +5,21 @@ import net.tomp2p.dht.FuturePut;
 import net.tomp2p.dht.FutureRemove;
 import net.tomp2p.dht.PeerDHT;
 import net.tomp2p.storage.Data;
+import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
+import org.rmatil.sync.persistence.core.FileMetaInfo;
 import org.rmatil.sync.persistence.core.dht.listener.DhtDeleteListener;
 import org.rmatil.sync.persistence.core.dht.listener.DhtGetListener;
 import org.rmatil.sync.persistence.core.dht.listener.DhtPutListener;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
 
@@ -43,7 +50,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
      *       );
      * </pre>
      *
-     * @param dht                 A PeerDHT bootstrapped with domain protection
+     * @param dht A PeerDHT bootstrapped with domain protection
      */
     public DhtStorageAdapter(PeerDHT dht) {
         if (null == dht.peerBean().keyPair().getPublic() ||
@@ -69,12 +76,12 @@ public class DhtStorageAdapter implements IStorageAdapter {
 
         Data data = new Data(bytes);
 
-            FuturePut futurePut = this.dht
-                    .put(((DhtPathElement) path).getLocationKey())
-                    .data(((DhtPathElement) path).getContentKey(), data)
-                    .protectDomain()
-                    .domainKey(((DhtPathElement) path).getDomainKey())
-                    .start();
+        FuturePut futurePut = this.dht
+                .put(((DhtPathElement) path).getLocationKey())
+                .data(((DhtPathElement) path).getContentKey(), data)
+                .protectDomain()
+                .domainKey(((DhtPathElement) path).getDomainKey())
+                .start();
 
         futurePut.addListener(
                 new DhtPutListener(this.dht)
@@ -146,6 +153,89 @@ public class DhtStorageAdapter implements IStorageAdapter {
         }
 
         return futureGet.data().toBytes();
+    }
+
+    @Override
+    public byte[] read(IPathElement path, int offset, int length)
+            throws InputOutputException {
+
+        if (! (path instanceof DhtPathElement)) {
+            throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
+        }
+
+        FutureGet futureGet = this.dht
+                .get(((DhtPathElement) path).getLocationKey())
+                .contentKey(((DhtPathElement) path).getContentKey())
+                .domainKey(((DhtPathElement) path).getDomainKey())
+                .start();
+
+        futureGet.addListener(
+                new DhtGetListener(this.dht)
+        );
+
+        try {
+            futureGet.await();
+        } catch (InterruptedException e) {
+            // rethrow using our exception
+            throw new InputOutputException(e);
+        }
+
+        if (null == futureGet.data()) {
+            return new byte[0];
+        }
+
+        byte[] contents = futureGet.data().toBytes();
+        // check offset to be smaller than the fetched content
+        int srcPos = Math.min(contents.length, offset);
+
+        // check length to be smaller than the fetched content
+        int maxLength;
+        if (length > contents.length) {
+            maxLength = contents.length;
+        } else {
+            maxLength = length;
+        }
+
+        // check that when reading from the offset, the length is at max. the length of the content
+        if (maxLength + srcPos > contents.length) {
+            maxLength = contents.length - srcPos;
+        }
+
+        byte[] chunk = new byte[maxLength];
+        System.arraycopy(contents, srcPos, chunk, 0, maxLength);
+
+        return chunk;
+    }
+
+    @Override
+    public IFileMetaInfo getMetaInformation(IPathElement path)
+            throws InputOutputException {
+        if (! (path instanceof DhtPathElement)) {
+            throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
+        }
+
+        FutureGet futureGet = this.dht
+                .get(((DhtPathElement) path).getLocationKey())
+                .contentKey(((DhtPathElement) path).getContentKey())
+                .domainKey(((DhtPathElement) path).getDomainKey())
+                .start();
+
+        futureGet.addListener(
+                new DhtGetListener(this.dht)
+        );
+
+        try {
+            futureGet.await();
+        } catch (InterruptedException e) {
+            // rethrow using our exception
+            throw new InputOutputException(e);
+        }
+
+        if (null == futureGet.data()) {
+            return new FileMetaInfo(0);
+        }
+
+        return new FileMetaInfo(futureGet.data().toBytes().length);
     }
 
     @Override

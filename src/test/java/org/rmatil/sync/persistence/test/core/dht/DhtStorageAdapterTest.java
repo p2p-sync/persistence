@@ -11,12 +11,13 @@ import net.tomp2p.p2p.PeerBuilder;
 import net.tomp2p.peers.Number160;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
+import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.dht.DhtPathElement;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
-import org.rmatil.sync.persistence.core.local.PathElement;
+import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.persistence.test.config.Config;
 import org.slf4j.Logger;
@@ -141,6 +142,51 @@ public class DhtStorageAdapterTest {
     }
 
     @Test
+    public void testReadOffset()
+            throws InputOutputException {
+        String content = "Feel the rhythm feel the blues, it's bobsled time";
+        IPathElement path = new DhtPathElement(
+                "location key",
+                "content key",
+                "domain key"
+        );
+
+        // persist path under protection of the public key of peer1
+        dhtStorageAdapter1.persist(StorageType.FILE, path, content.getBytes());
+
+        // this should contain the whole string
+        byte[] readContent = dhtStorageAdapter1.read(path, 0, 49);
+        assertArrayEquals("Content is not equal", content.getBytes(), readContent);
+
+        byte[] readContent2 = dhtStorageAdapter1.read(path, 10, 39);
+        byte[] expected = new byte[39];
+        System.arraycopy(content.getBytes(), 10, expected, 0, 39);
+        assertArrayEquals("Part of the content is not the same", expected, readContent2);
+
+        // we expect the storage adapter to trim the byte array
+        byte[] readContent3 = dhtStorageAdapter1.read(path, 10, 50);
+        assertArrayEquals("Part of the content is not the same", expected, readContent3);
+    }
+
+    @Test
+    public void testGetMetaInformation()
+            throws InputOutputException {
+        String content = "Feel the rhythm feel the blues, it's bobsled time";
+        IPathElement path = new DhtPathElement(
+                "location key",
+                "content key",
+                "domain key"
+        );
+
+        // persist path under protection of the public key of peer1
+        dhtStorageAdapter1.persist(StorageType.FILE, path, content.getBytes());
+
+        // this should contain the whole string
+        IFileMetaInfo fileMetaInfo = dhtStorageAdapter1.getMetaInformation(path);
+        assertEquals("Size should be equal to the length of the content", content.getBytes().length, fileMetaInfo.getTotalFileSize());
+    }
+
+    @Test
     public void testDelete()
             throws InputOutputException {
         dhtStorageAdapter1.persist(StorageType.FILE, path1, data);
@@ -209,7 +255,7 @@ public class DhtStorageAdapterTest {
     public void testLocalPathElement1()
             throws InputOutputException {
 
-        IPathElement pathElement = new PathElement("somePath");
+        IPathElement pathElement = new LocalPathElement("somePath");
 
         thrown.expect(InputOutputException.class);
         dhtStorageAdapter1.persist(StorageType.FILE, pathElement, new byte[0]);
@@ -225,7 +271,7 @@ public class DhtStorageAdapterTest {
     public void testLocalPathElement2()
             throws InputOutputException {
 
-        IPathElement pathElement = new PathElement("somePath");
+        IPathElement pathElement = new LocalPathElement("somePath");
 
         thrown.expect(InputOutputException.class);
 
@@ -236,7 +282,7 @@ public class DhtStorageAdapterTest {
     public void testLocalPathElement3()
             throws InputOutputException {
 
-        IPathElement pathElement = new PathElement("somePath");
+        IPathElement pathElement = new LocalPathElement("somePath");
 
         thrown.expect(InputOutputException.class);
 
@@ -247,7 +293,7 @@ public class DhtStorageAdapterTest {
     public void testLocalPathElement4()
             throws InputOutputException {
 
-        IPathElement pathElement = new PathElement("somePath");
+        IPathElement pathElement = new LocalPathElement("somePath");
 
         thrown.expect(InputOutputException.class);
         dhtStorageAdapter1.exists(StorageType.FILE, pathElement);

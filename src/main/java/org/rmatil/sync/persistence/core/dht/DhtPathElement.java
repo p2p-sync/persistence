@@ -64,7 +64,7 @@ public class DhtPathElement implements IPathElement {
      */
     @Override
     public String getPath() {
-        return this.contentKey.toString();
+        return this.rawLocationKey + "/" + this.rawContentKey + "/" + this.rawDomainKey;
     }
 
     /**

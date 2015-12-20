@@ -1,12 +1,14 @@
 package org.rmatil.sync.persistence.core.local;
 
+import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
+import org.rmatil.sync.persistence.core.FileMetaInfo;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
+import sun.security.x509.IPAddressName;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -57,6 +59,50 @@ public class LocalStorageAdapter implements IStorageAdapter {
 
         try {
             return Files.readAllBytes(filePath);
+        } catch (IOException e) {
+            throw new InputOutputException(e);
+        }
+    }
+
+    @Override
+    public byte[] read(IPathElement path, int offset, int length)
+            throws InputOutputException {
+
+        Path filePath = rootDir.resolve(path.getPath());
+
+        byte[] chunk = new byte[length];
+        FileInputStream fileInputStream = null;
+        try {
+            fileInputStream = new FileInputStream(filePath.toFile());
+            BufferedInputStream buffer = new BufferedInputStream(fileInputStream);
+            // skip to offset
+            buffer.skip(offset);
+            int bytesRead = buffer.read(chunk, 0, length);
+            buffer.close();
+
+            if (bytesRead < length && bytesRead > -1) {
+                // we have to truncate the byte array to not return null bytes
+                byte[] trimmedChunk = new byte[bytesRead];
+                System.arraycopy(chunk, 0, trimmedChunk, 0, bytesRead);
+                return trimmedChunk;
+            }
+
+            return chunk;
+        } catch (IOException e) {
+            throw new InputOutputException(e);
+        }
+    }
+
+    @Override
+    public IFileMetaInfo getMetaInformation(IPathElement path)
+            throws InputOutputException {
+        Path filePath = rootDir.resolve(path.getPath());
+
+        FileInputStream fileInputStream = null;
+        try {
+            fileInputStream = new FileInputStream(filePath.toFile());
+
+            return new FileMetaInfo(fileInputStream.getChannel().size());
         } catch (IOException e) {
             throw new InputOutputException(e);
         }

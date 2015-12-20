@@ -46,6 +46,32 @@ public interface IStorageAdapter {
             throws InputOutputException;
 
     /**
+     * Reads the contents stored at the given path and specified by the offset and length
+     *
+     * @param path   The path from which to read
+     * @param offset The offset where to start reading
+     * @param length The length to read
+     *
+     * @return The read content. If length is exceeding the file's content, then the returned array will be shorter than the given length
+     *
+     * @throws InputOutputException If an error occurred during reading
+     */
+    byte[] read(IPathElement path, int offset, int length)
+            throws InputOutputException;
+
+    /**
+     * Returns some meta information about the given path
+     *
+     * @param path The path element of which to get the meta information
+     *
+     * @return The meta information
+     *
+     * @throws InputOutputException If an error occurred during fetching the meta information
+     */
+    IFileMetaInfo getMetaInformation(IPathElement path)
+            throws InputOutputException;
+
+    /**
      * Checks whether the given path already exists
      *
      * @param storageType The storage type to check for
