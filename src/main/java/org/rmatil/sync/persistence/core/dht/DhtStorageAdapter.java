@@ -238,6 +238,10 @@ public class DhtStorageAdapter implements IStorageAdapter {
             throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
         }
 
+        if (! this.exists(StorageType.FILE, path)) {
+            throw new InputOutputException("Could not get meta information for " + path.getPath() + ". No such file or directory");
+        }
+
         FutureGet futureGet = this.dht
                 .get(((DhtPathElement) path).getLocationKey())
                 .contentKey(((DhtPathElement) path).getContentKey())
@@ -256,10 +260,10 @@ public class DhtStorageAdapter implements IStorageAdapter {
         }
 
         if (null == futureGet.data()) {
-            return new FileMetaInfo(0);
+            return new FileMetaInfo(0, true, "");
         }
 
-        return new FileMetaInfo(futureGet.data().toBytes().length);
+        return new FileMetaInfo(futureGet.data().toBytes().length, true, "");
     }
 
     @Override

@@ -117,11 +117,23 @@ public class LocalStorageAdapter implements IStorageAdapter {
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
+        File file = filePath.toFile();
+        if (! file.exists()) {
+            throw new InputOutputException("Could not get meta information for path " + path.getPath() + ". No such file or directory");
+        }
+
+        if (file.isDirectory()) {
+            return new FileMetaInfo(0, false, "");
+        }
+
         FileInputStream fileInputStream;
         try {
             fileInputStream = new FileInputStream(filePath.toFile());
 
-            return new FileMetaInfo(fileInputStream.getChannel().size());
+            int fileExtDot = filePath.getFileName().toString().lastIndexOf('.');
+            String fileExt = (fileExtDot == -1) ? "" : filePath.getFileName().toString().substring(fileExtDot + 1);
+
+            return new FileMetaInfo(fileInputStream.getChannel().size(), true, fileExt);
         } catch (IOException e) {
             throw new InputOutputException(e);
         }

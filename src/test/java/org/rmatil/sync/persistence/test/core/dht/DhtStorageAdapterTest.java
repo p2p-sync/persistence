@@ -230,6 +230,19 @@ public class DhtStorageAdapterTest {
         // this should contain the whole string
         IFileMetaInfo fileMetaInfo = dhtStorageAdapter1.getMetaInformation(path);
         assertEquals("Size should be equal to the length of the content", content.getBytes().length, fileMetaInfo.getTotalFileSize());
+        assertEquals("File ext should be empty", "", fileMetaInfo.getFileExtension());
+        assertEquals("File size is not the same", content.getBytes().length, fileMetaInfo.getTotalFileSize());
+        assertFalse("File should not be a directory", fileMetaInfo.isDirectory());
+        assertTrue("File should be a file", fileMetaInfo.isFile());
+
+        thrown.expect(InputOutputException.class);
+        IPathElement notExistingPath = new DhtPathElement(
+                "winter",
+                "summer",
+                "spring"
+        );
+
+        dhtStorageAdapter1.getMetaInformation(notExistingPath);
     }
 
     @Test

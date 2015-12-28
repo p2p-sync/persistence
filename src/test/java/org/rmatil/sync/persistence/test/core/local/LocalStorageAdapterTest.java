@@ -178,6 +178,20 @@ public class LocalStorageAdapterTest {
         // this should contain the whole string
         IFileMetaInfo fileMetaInfo = localStorageAdapter.getMetaInformation(path);
         assertEquals("Size should be equal to the length of the content", content.getBytes().length, fileMetaInfo.getTotalFileSize());
+        assertEquals("File ext should be txt", "txt", fileMetaInfo.getFileExtension());
+        assertEquals("File size is not the same", content.getBytes().length, fileMetaInfo.getTotalFileSize());
+        assertFalse("File should not be a directory", fileMetaInfo.isDirectory());
+        assertTrue("File should be a file", fileMetaInfo.isFile());
+
+        IFileMetaInfo fileMetaInfo1 = localStorageAdapter.getMetaInformation(new LocalPathElement("/"));
+        assertEquals("A dir should have an empty file ext", "", fileMetaInfo1.getFileExtension());
+        assertEquals("A dir should have size of 0", 0, fileMetaInfo1.getTotalFileSize());
+        assertTrue("A dir should be a directory", fileMetaInfo1.isDirectory());
+        assertFalse("A directory should not be file", fileMetaInfo1.isFile());
+
+        IPathElement notExistingFile = new LocalPathElement("someUnexistingFile.exe");
+        thrown.expect(InputOutputException.class);
+        localStorageAdapter.getMetaInformation(notExistingFile);
     }
 
     @Test
