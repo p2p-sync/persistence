@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.junit.Assert.*;
 
@@ -188,6 +189,64 @@ public class LocalStorageAdapterTest {
 
         localStorageAdapter.read(path);
 
+    }
+
+    @Test
+    public void testMove()
+            throws InputOutputException {
+        IPathElement path = new LocalPathElement("testDir");
+        IPathElement path1 = new LocalPathElement("testDir/innerTestDir");
+        IPathElement path2 = new LocalPathElement("testDir/innerTestDir/testMyFile.txt");
+
+        localStorageAdapter.persist(StorageType.DIRECTORY, path, null);
+        localStorageAdapter.persist(StorageType.DIRECTORY, path1, null);
+        localStorageAdapter.persist(StorageType.FILE, path2, new byte[0]);
+
+        assertTrue("innerDir does not exist", localStorageAdapter.exists(StorageType.DIRECTORY, path1));
+        assertTrue("testMyFile.txt does not exist", localStorageAdapter.exists(StorageType.FILE, path2));
+
+        IPathElement newPath = new LocalPathElement("testDir2");
+
+        Path txtFile = Paths.get(newPath.getPath()).resolve("testMyFile.txt");
+        IPathElement newPathTextFile = new LocalPathElement(txtFile.toString());
+
+        localStorageAdapter.move(StorageType.DIRECTORY, path1, newPath);
+
+        assertTrue("innerDir does not exist after moving", localStorageAdapter.exists(StorageType.DIRECTORY, newPath));
+        assertTrue("testMyFile does not exist after moving", localStorageAdapter.exists(StorageType.FILE, newPathTextFile));
+        assertFalse("old dir should not exist after moving anymore", localStorageAdapter.exists(StorageType.DIRECTORY, path1));
+
+        localStorageAdapter.delete(newPath);
+    }
+
+    @Test
+    public void testMoveWithException()
+            throws InputOutputException {
+        IPathElement path = new LocalPathElement("testDir");
+        IPathElement path1 = new LocalPathElement("testDir/innerTestDir");
+        IPathElement path2 = new LocalPathElement("testDir/innerTestDir/testMyFile.txt");
+
+        localStorageAdapter.persist(StorageType.DIRECTORY, path, null);
+        localStorageAdapter.persist(StorageType.DIRECTORY, path1, null);
+        localStorageAdapter.persist(StorageType.FILE, path2, new byte[0]);
+
+        assertTrue("innerDir does not exist", localStorageAdapter.exists(StorageType.DIRECTORY, path1));
+        assertTrue("testMyFile.txt does not exist", localStorageAdapter.exists(StorageType.FILE, path2));
+
+        IPathElement newPath = new LocalPathElement("testMyFile.txt");
+
+        // now create the target
+        localStorageAdapter.persist(StorageType.FILE, newPath, new byte[0]);
+
+        assertTrue("newPath should exist", localStorageAdapter.exists(StorageType.FILE, newPath));
+
+        thrown.expect(InputOutputException.class);
+        localStorageAdapter.move(StorageType.FILE, path2, newPath);
+
+        assertFalse("testMyFile should still exist after moving", localStorageAdapter.exists(StorageType.FILE, newPath));
+        assertTrue("old testMyFile should still exist after moving", localStorageAdapter.exists(StorageType.FILE, path2));
+
+        localStorageAdapter.delete(newPath);
     }
 
     @Test

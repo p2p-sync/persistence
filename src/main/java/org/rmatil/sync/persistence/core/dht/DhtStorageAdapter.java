@@ -207,6 +207,30 @@ public class DhtStorageAdapter implements IStorageAdapter {
         return chunk;
     }
 
+    /**
+     * <i>Note</i>: This implementation of moving uses the combination of
+     * persist and remove to emulate a move. Therefore, the data stored in
+     * the DHT is completely retransmitted through the network.
+     * Due to consistency reasons, contents are first rewritten to the
+     * new path and then removed from the old one.
+     *
+     * {@inheritDoc}
+     */
+    @Override
+    public void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
+            throws InputOutputException {
+
+        byte[] contents = this.read(oldPath);
+
+        if (this.exists(storageType, newPath)) {
+            throw new InputOutputException("Target path " + newPath.getPath() + " already exists");
+        }
+
+        // first try to write to new path
+        this.persist(StorageType.FILE, newPath, contents);
+        this.delete(oldPath);
+    }
+
     @Override
     public IFileMetaInfo getMetaInformation(IPathElement path)
             throws InputOutputException {

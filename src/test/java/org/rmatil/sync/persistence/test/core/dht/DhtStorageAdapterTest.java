@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -166,6 +168,50 @@ public class DhtStorageAdapterTest {
         // we expect the storage adapter to trim the byte array
         byte[] readContent3 = dhtStorageAdapter1.read(path, 10, 50);
         assertArrayEquals("Part of the content is not the same", expected, readContent3);
+    }
+
+    @Test
+    public void testMove()
+            throws InputOutputException {
+        dhtStorageAdapter1.persist(StorageType.FILE, path1, new byte[0]);
+
+        assertTrue("path1 does not exist", dhtStorageAdapter1.exists(StorageType.FILE, path1));
+
+        IPathElement newPath = new DhtPathElement(
+                "location key 2",
+                "content key 2",
+                "domain key 2"
+        );
+
+        dhtStorageAdapter1.move(StorageType.FILE, path1, newPath);
+
+        assertTrue("new Path should exist after moving", dhtStorageAdapter1.exists(StorageType.FILE, newPath));
+        assertFalse("old path should not exist after moving anymore", dhtStorageAdapter1.exists(StorageType.FILE, path1));
+
+        dhtStorageAdapter1.delete(newPath);
+    }
+
+    @Test
+    public void testMoveWithException()
+            throws InputOutputException {
+        dhtStorageAdapter1.persist(StorageType.FILE, path1, new byte[0]);
+
+        assertTrue("path1 does not exist", dhtStorageAdapter1.exists(StorageType.FILE, path1));
+        IPathElement newPath = new DhtPathElement(
+                "location key 2",
+                "content key 2",
+                "domain key 2"
+        );
+
+        // now create first the target path
+        dhtStorageAdapter1.persist(StorageType.FILE, newPath, new byte[0]);
+
+        thrown.expect(InputOutputException.class);
+        // this should then throw the exception
+        dhtStorageAdapter1.move(StorageType.FILE, path1, newPath);
+
+        assertTrue("new Path should exist after moving", dhtStorageAdapter1.exists(StorageType.FILE, newPath));
+        assertFalse("old path should not exist after moving anymore", dhtStorageAdapter1.exists(StorageType.FILE, path1));
     }
 
     @Test

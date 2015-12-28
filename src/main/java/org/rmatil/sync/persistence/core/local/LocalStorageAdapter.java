@@ -12,6 +12,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
@@ -94,11 +95,29 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
+    public void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
+            throws InputOutputException {
+
+        Path oldFilePath = rootDir.resolve(oldPath.getPath());
+        Path newFilePath = rootDir.resolve(newPath.getPath());
+
+        if (this.exists(storageType, newPath)) {
+            throw new InputOutputException("Target path " + newFilePath.toString() + " does already exist");
+        }
+
+        try {
+            Files.move(oldFilePath, newFilePath, StandardCopyOption.ATOMIC_MOVE);
+        } catch (IOException e) {
+            throw new InputOutputException(e);
+        }
+    }
+
+    @Override
     public IFileMetaInfo getMetaInformation(IPathElement path)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
-        FileInputStream fileInputStream = null;
+        FileInputStream fileInputStream;
         try {
             fileInputStream = new FileInputStream(filePath.toFile());
 

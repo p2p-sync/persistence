@@ -60,6 +60,18 @@ public interface IStorageAdapter {
             throws InputOutputException;
 
     /**
+     * Moves the contents stored at oldPath to newPath.
+     *
+     * @param storageType The storage type of the old and new path
+     * @param oldPath     The old path
+     * @param newPath     The new path to move the contents
+     *
+     * @throws InputOutputException If the target path already exists
+     */
+    void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
+            throws InputOutputException;
+
+    /**
      * Returns some meta information about the given path
      *
      * @param path The path element of which to get the meta information
