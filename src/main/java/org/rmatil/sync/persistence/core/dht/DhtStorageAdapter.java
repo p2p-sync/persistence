@@ -15,11 +15,6 @@ import org.rmatil.sync.persistence.core.dht.listener.DhtGetListener;
 import org.rmatil.sync.persistence.core.dht.listener.DhtPutListener;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
 
@@ -75,6 +70,66 @@ public class DhtStorageAdapter implements IStorageAdapter {
         }
 
         Data data = new Data(bytes);
+
+        FuturePut futurePut = this.dht
+                .put(((DhtPathElement) path).getLocationKey())
+                .data(((DhtPathElement) path).getContentKey(), data)
+                .protectDomain()
+                .domainKey(((DhtPathElement) path).getDomainKey())
+                .start();
+
+        futurePut.addListener(
+                new DhtPutListener(this.dht)
+        );
+
+        try {
+            futurePut.await();
+        } catch (InterruptedException e) {
+            // rethrow using our exception
+            throw new InputOutputException(e);
+        }
+    }
+
+    @Override
+    public void persist(StorageType type, IPathElement path, int offset, byte[] bytes)
+            throws InputOutputException {
+
+        if (! (path instanceof DhtPathElement)) {
+            throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
+        }
+
+        if (StorageType.FILE != type) {
+            throw new InputOutputException("Only files are allowed to be stored in the DHT");
+        }
+
+        byte[] existingBytes = this.read(path);
+
+        int newTotalSize;
+        if (offset < existingBytes.length) {
+            newTotalSize = existingBytes.length - Math.abs(offset - existingBytes.length) + bytes.length;
+        } else {
+            newTotalSize = Math.min(offset, existingBytes.length) + bytes.length;
+            offset = newTotalSize - bytes.length;
+        }
+
+        if (newTotalSize < existingBytes.length) {
+            newTotalSize = existingBytes.length;
+        }
+
+        byte[] targetBytes = new byte[newTotalSize];
+
+        int maxAllowedWriteSize;
+        if (existingBytes.length > newTotalSize) {
+            maxAllowedWriteSize = newTotalSize;
+        } else {
+            maxAllowedWriteSize = existingBytes.length;
+        }
+
+        System.arraycopy(existingBytes, 0, targetBytes, 0, maxAllowedWriteSize);
+        System.arraycopy(bytes, 0, targetBytes, offset, bytes.length);
+
+
+        Data data = new Data(targetBytes);
 
         FuturePut futurePut = this.dht
                 .put(((DhtPathElement) path).getLocationKey())

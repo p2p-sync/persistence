@@ -24,6 +24,21 @@ public interface IStorageAdapter {
             throws InputOutputException;
 
     /**
+     * Persists the given bytes of the given path at the given offset.
+     * Note, that data is overwritten and not appended, if the offset is smaller
+     * than the total size of the file!
+     *
+     * @param type   The type of path which should be created
+     * @param path   The path used to identify the data
+     * @param offset The offset where to start writing
+     * @param bytes  The bytes to store (may be null if storageType is a directory)
+     *
+     * @throws InputOutputException If an error occurred during persisting
+     */
+    void persist(StorageType type, IPathElement path, int offset, byte[] bytes)
+            throws InputOutputException;
+
+    /**
      * Deletes the content stored at path
      *
      * @param path The path to remove

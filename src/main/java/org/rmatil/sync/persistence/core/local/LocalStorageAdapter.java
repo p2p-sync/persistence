@@ -35,11 +35,16 @@ public class LocalStorageAdapter implements IStorageAdapter {
 
     public void persist(StorageType type, IPathElement path, byte[] bytes)
             throws InputOutputException {
+        this.persist(type, path, 0, bytes);
+    }
+
+    public void persist(StorageType type, IPathElement path, int offset, byte[] bytes)
+            throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
         switch (type) {
             case FILE:
-                writeData(filePath, bytes);
+                writeData(filePath, offset, bytes);
                 break;
             case DIRECTORY:
                 createDir(filePath);
@@ -81,7 +86,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
             int bytesRead = buffer.read(chunk, 0, length);
             buffer.close();
 
-            if (bytesRead < length && bytesRead > -1) {
+            if (bytesRead < length && bytesRead > - 1) {
                 // we have to truncate the byte array to not return null bytes
                 byte[] trimmedChunk = new byte[bytesRead];
                 System.arraycopy(chunk, 0, trimmedChunk, 0, bytesRead);
@@ -131,7 +136,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
             fileInputStream = new FileInputStream(filePath.toFile());
 
             int fileExtDot = filePath.getFileName().toString().lastIndexOf('.');
-            String fileExt = (fileExtDot == -1) ? "" : filePath.getFileName().toString().substring(fileExtDot + 1);
+            String fileExt = (fileExtDot == - 1) ? "" : filePath.getFileName().toString().substring(fileExtDot + 1);
 
             return new FileMetaInfo(fileInputStream.getChannel().size(), true, fileExt);
         } catch (IOException e) {
@@ -180,14 +185,27 @@ public class LocalStorageAdapter implements IStorageAdapter {
      * Writes the given data to the specified file path
      *
      * @param filePath The file to which the data should be written
+     * @param offset   The offset where to start writing data
      * @param bytes    The bytes to write
      *
      * @throws InputOutputException If an IOException occurred
      */
-    protected void writeData(Path filePath, byte[] bytes)
+    protected void writeData(Path filePath, int offset, byte[] bytes)
             throws InputOutputException {
+
         try {
-            Files.write(filePath, bytes, this.optionOptions);
+            RandomAccessFile randomAccessFile = new RandomAccessFile(filePath.toString(), "rw");
+
+            long maxAllowedOffset = 0;
+            if (offset > randomAccessFile.getChannel().size()) {
+                maxAllowedOffset = randomAccessFile.getChannel().size();
+            } else {
+                maxAllowedOffset = offset;
+            }
+
+            randomAccessFile.seek(maxAllowedOffset);
+            randomAccessFile.write(bytes);
+            randomAccessFile.close();
         } catch (IOException e) {
             throw new InputOutputException(e);
         }

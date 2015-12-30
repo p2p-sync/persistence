@@ -26,8 +26,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -50,7 +48,8 @@ public class DhtStorageAdapterTest {
     protected static KeyPair keyPair1;
     protected static KeyPair keyPair2;
 
-    protected static IPathElement path1;protected static byte[] data = "Some content".getBytes();
+    protected static IPathElement path1;
+    protected static byte[] data = "Some content".getBytes();
 
     @BeforeClass
     public static void setup()
@@ -131,6 +130,39 @@ public class DhtStorageAdapterTest {
         // should be the same since path has the same protection key
         byte[] receivedContent2 = dhtStorageAdapter2.read(path1);
         assertArrayEquals("Content should not be empty", data, receivedContent2);
+    }
+
+    @Test
+    public void testStoreAtOffset()
+            throws InputOutputException, InterruptedException {
+        // persist path under protection of the public key of peer1
+        dhtStorageAdapter1.persist(StorageType.FILE, path1, data);
+
+        // wait to for propagating data among peers
+        Thread.sleep(1000L);
+
+        byte[] receivedContent = dhtStorageAdapter1.read(path1);
+        assertArrayEquals("Content is not the same", data, receivedContent);
+
+        String data2 = "content blub blub";
+        dhtStorageAdapter1.persist(StorageType.FILE, path1, 5, data2.getBytes());
+        byte[] receivedContentAfterModify = dhtStorageAdapter1.read(path1);
+        assertEquals("String is not equals", "Some content blub blub", new String(receivedContentAfterModify));
+
+        // should be the same since path has the same protection key
+        byte[] receivedContent2 = dhtStorageAdapter2.read(path1);
+        assertEquals("Content should not be empty", "Some content blub blub", new String(receivedContent2));
+
+        String data3 = "ab";
+        dhtStorageAdapter1.persist(StorageType.FILE, path1, 5, data3.getBytes());
+        byte[] receivedContentAfterModify2 = dhtStorageAdapter1.read(path1);
+        assertEquals("String is not equals", "Some abntent blub blub", new String(receivedContentAfterModify2));
+
+        // write beyond end of file
+        String data4 = "cd";
+        dhtStorageAdapter1.persist(StorageType.FILE, path1, 25, data4.getBytes());
+        byte[] receivedContentAfterModify3 = dhtStorageAdapter1.read(path1);
+        assertEquals("String is not equals", "Some abntent blub blubcd", new String(receivedContentAfterModify3));
     }
 
     @Test

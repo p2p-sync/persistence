@@ -79,6 +79,37 @@ public class LocalStorageAdapterTest {
     }
 
     @Test
+    public void testStoreAtOffset()
+            throws InputOutputException, InterruptedException {
+        String content = "Some content";
+
+        IPathElement path = new LocalPathElement(Config.DEFAULT.getTestFileName1());
+        localStorageAdapter.persist(StorageType.FILE, path, content.getBytes());
+
+        // wait to for propagating data among peers
+        Thread.sleep(1000L);
+
+        byte[] receivedContent = localStorageAdapter.read(path);
+        assertArrayEquals("Content is not the same", content.getBytes(), receivedContent);
+
+        String data2 = "content blub blub";
+        localStorageAdapter.persist(StorageType.FILE, path, 5, data2.getBytes());
+        byte[] receivedContentAfterModify = localStorageAdapter.read(path);
+        assertEquals("String is not equals", "Some content blub blub", new String(receivedContentAfterModify));
+
+        String data3 = "ab";
+        localStorageAdapter.persist(StorageType.FILE, path, 5, data3.getBytes());
+        byte[] receivedContentAfterModify2 = localStorageAdapter.read(path);
+        assertEquals("String is not equals", "Some abntent blub blub", new String(receivedContentAfterModify2));
+
+        // write beyond end of file
+        String data4 = "cd";
+        localStorageAdapter.persist(StorageType.FILE, path, 25, data4.getBytes());
+        byte[] receivedContentAfterModify3 = localStorageAdapter.read(path);
+        assertEquals("String is not equals", "Some abntent blub blubcd", new String(receivedContentAfterModify3));
+    }
+
+    @Test
     public void testPersistException()
             throws InputOutputException {
         thrown.expect(InputOutputException.class);
