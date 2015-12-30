@@ -35,7 +35,7 @@ public interface IStorageAdapter {
      *
      * @throws InputOutputException If an error occurred during persisting
      */
-    void persist(StorageType type, IPathElement path, int offset, byte[] bytes)
+    void persist(StorageType type, IPathElement path, long offset, byte[] bytes)
             throws InputOutputException;
 
     /**

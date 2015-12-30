@@ -38,7 +38,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
         this.persist(type, path, 0, bytes);
     }
 
-    public void persist(StorageType type, IPathElement path, int offset, byte[] bytes)
+    public void persist(StorageType type, IPathElement path, long offset, byte[] bytes)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
@@ -77,7 +77,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
         Path filePath = rootDir.resolve(path.getPath());
 
         byte[] chunk = new byte[length];
-        FileInputStream fileInputStream = null;
+        FileInputStream fileInputStream;
         try {
             fileInputStream = new FileInputStream(filePath.toFile());
             BufferedInputStream buffer = new BufferedInputStream(fileInputStream);
@@ -190,13 +190,13 @@ public class LocalStorageAdapter implements IStorageAdapter {
      *
      * @throws InputOutputException If an IOException occurred
      */
-    protected void writeData(Path filePath, int offset, byte[] bytes)
+    protected void writeData(Path filePath, long offset, byte[] bytes)
             throws InputOutputException {
 
         try {
             RandomAccessFile randomAccessFile = new RandomAccessFile(filePath.toString(), "rw");
 
-            long maxAllowedOffset = 0;
+            long maxAllowedOffset;
             if (offset > randomAccessFile.getChannel().size()) {
                 maxAllowedOffset = randomAccessFile.getChannel().size();
             } else {

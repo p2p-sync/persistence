@@ -91,7 +91,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public void persist(StorageType type, IPathElement path, int offset, byte[] bytes)
+    public void persist(StorageType type, IPathElement path, long offset, byte[] bytes)
             throws InputOutputException {
 
         if (! (path instanceof DhtPathElement)) {
@@ -104,12 +104,15 @@ public class DhtStorageAdapter implements IStorageAdapter {
 
         byte[] existingBytes = this.read(path);
 
+        // TODO: fix writing with "long" offset
+        int intOffset = (int) offset;
+
         int newTotalSize;
-        if (offset < existingBytes.length) {
-            newTotalSize = existingBytes.length - Math.abs(offset - existingBytes.length) + bytes.length;
+        if (intOffset < existingBytes.length) {
+            newTotalSize = existingBytes.length - Math.abs(intOffset - existingBytes.length) + bytes.length;
         } else {
-            newTotalSize = Math.min(offset, existingBytes.length) + bytes.length;
-            offset = newTotalSize - bytes.length;
+            newTotalSize = Math.min(intOffset, existingBytes.length) + bytes.length;
+            intOffset = newTotalSize - bytes.length;
         }
 
         if (newTotalSize < existingBytes.length) {
@@ -126,7 +129,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
         }
 
         System.arraycopy(existingBytes, 0, targetBytes, 0, maxAllowedWriteSize);
-        System.arraycopy(bytes, 0, targetBytes, offset, bytes.length);
+        System.arraycopy(bytes, 0, targetBytes, intOffset, bytes.length);
 
 
         Data data = new Data(targetBytes);
