@@ -33,12 +33,14 @@ public class LocalStorageAdapter implements IStorageAdapter {
         this.optionOptions = new OpenOption[]{WRITE, CREATE, TRUNCATE_EXISTING};
     }
 
-    public void persist(StorageType type, IPathElement path, byte[] bytes)
+    @Override
+    synchronized public void persist(StorageType type, IPathElement path, byte[] bytes)
             throws InputOutputException {
         this.persist(type, path, 0, bytes);
     }
 
-    public void persist(StorageType type, IPathElement path, long offset, byte[] bytes)
+    @Override
+    synchronized public void persist(StorageType type, IPathElement path, long offset, byte[] bytes)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
@@ -52,13 +54,15 @@ public class LocalStorageAdapter implements IStorageAdapter {
         }
     }
 
-    public void delete(IPathElement path)
+    @Override
+    synchronized public void delete(IPathElement path)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
         this.delete(filePath);
     }
 
-    public byte[] read(IPathElement path)
+    @Override
+    synchronized public byte[] read(IPathElement path)
             throws InputOutputException {
 
         Path filePath = rootDir.resolve(path.getPath());
@@ -71,7 +75,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public byte[] read(IPathElement path, int offset, int length)
+    synchronized public byte[] read(IPathElement path, int offset, int length)
             throws InputOutputException {
 
         Path filePath = rootDir.resolve(path.getPath());
@@ -100,7 +104,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
+    synchronized public void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
             throws InputOutputException {
 
         Path oldFilePath = rootDir.resolve(oldPath.getPath());
@@ -118,7 +122,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public IFileMetaInfo getMetaInformation(IPathElement path)
+    synchronized public IFileMetaInfo getMetaInformation(IPathElement path)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
@@ -144,7 +148,8 @@ public class LocalStorageAdapter implements IStorageAdapter {
         }
     }
 
-    public boolean exists(StorageType storageType, IPathElement path) {
+    @Override
+    synchronized public boolean exists(StorageType storageType, IPathElement path) {
         Path filePath = rootDir.resolve(path.getPath());
 
         if (! filePath.toFile().exists()) {
@@ -161,6 +166,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
         return false;
     }
 
+    @Override
     public Path getRootDir() {
         return this.rootDir;
     }

@@ -58,7 +58,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public void persist(StorageType type, IPathElement path, byte[] bytes)
+    synchronized public void persist(StorageType type, IPathElement path, byte[] bytes)
             throws InputOutputException {
 
         if (! (path instanceof DhtPathElement)) {
@@ -91,7 +91,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public void persist(StorageType type, IPathElement path, long offset, byte[] bytes)
+    synchronized public void persist(StorageType type, IPathElement path, long offset, byte[] bytes)
             throws InputOutputException {
 
         if (! (path instanceof DhtPathElement)) {
@@ -154,7 +154,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public void delete(IPathElement path)
+    synchronized public void delete(IPathElement path)
             throws InputOutputException {
 
         if (! (path instanceof DhtPathElement)) {
@@ -182,7 +182,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public byte[] read(IPathElement path)
+    synchronized public byte[] read(IPathElement path)
             throws InputOutputException {
 
         if (! (path instanceof DhtPathElement)) {
@@ -214,7 +214,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public byte[] read(IPathElement path, int offset, int length)
+    synchronized public byte[] read(IPathElement path, int offset, int length)
             throws InputOutputException {
 
         if (! (path instanceof DhtPathElement)) {
@@ -275,7 +275,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
      * {@inheritDoc}
      */
     @Override
-    public void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
+    synchronized public void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
             throws InputOutputException {
 
         byte[] contents = this.read(oldPath);
@@ -290,7 +290,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public IFileMetaInfo getMetaInformation(IPathElement path)
+    synchronized public IFileMetaInfo getMetaInformation(IPathElement path)
             throws InputOutputException {
         if (! (path instanceof DhtPathElement)) {
             throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
@@ -325,7 +325,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public boolean exists(StorageType storageType, IPathElement path)
+    synchronized public boolean exists(StorageType storageType, IPathElement path)
             throws InputOutputException {
 
         if (! (path instanceof DhtPathElement)) {

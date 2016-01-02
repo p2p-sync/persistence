@@ -1,6 +1,5 @@
 package org.rmatil.sync.persistence.api;
 
-import net.tomp2p.dht.Storage;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
 import java.nio.file.Path;
