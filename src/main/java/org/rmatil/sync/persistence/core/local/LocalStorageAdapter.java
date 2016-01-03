@@ -75,7 +75,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public byte[] read(IPathElement path, int offset, int length)
+    synchronized public byte[] read(IPathElement path, long offset, int length)
             throws InputOutputException {
 
         Path filePath = rootDir.resolve(path.getPath());

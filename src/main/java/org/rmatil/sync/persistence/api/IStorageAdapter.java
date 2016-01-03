@@ -70,7 +70,7 @@ public interface IStorageAdapter {
      *
      * @throws InputOutputException If an error occurred during reading
      */
-    byte[] read(IPathElement path, int offset, int length)
+    byte[] read(IPathElement path, long offset, int length)
             throws InputOutputException;
 
     /**

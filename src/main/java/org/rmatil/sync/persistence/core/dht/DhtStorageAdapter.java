@@ -214,7 +214,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public byte[] read(IPathElement path, int offset, int length)
+    synchronized public byte[] read(IPathElement path, long offset, int length)
             throws InputOutputException {
 
         if (! (path instanceof DhtPathElement)) {
@@ -244,7 +244,8 @@ public class DhtStorageAdapter implements IStorageAdapter {
 
         byte[] contents = futureGet.data().toBytes();
         // check offset to be smaller than the fetched content
-        int srcPos = Math.min(contents.length, offset);
+        // TODO: fix int conversion
+        int srcPos = Math.min(contents.length, (int) offset);
 
         // check length to be smaller than the fetched content
         int maxLength;
