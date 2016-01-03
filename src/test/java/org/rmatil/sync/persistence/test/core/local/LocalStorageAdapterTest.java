@@ -107,6 +107,12 @@ public class LocalStorageAdapterTest {
         localStorageAdapter.persist(StorageType.FILE, path, 25, data4.getBytes());
         byte[] receivedContentAfterModify3 = localStorageAdapter.read(path);
         assertEquals("String is not equals", "Some abntent blub blubcd", new String(receivedContentAfterModify3));
+
+        // we expect to truncate the rest of the file if we start writing at offset 0 again
+        String data5 = "abcde";
+        localStorageAdapter.persist(StorageType.FILE, path, 0, data5.getBytes());
+        byte[] receivedContentAfterModify4 = localStorageAdapter.read(path);
+        assertEquals("String is not equal", data5, new String(receivedContentAfterModify4));
     }
 
     @Test

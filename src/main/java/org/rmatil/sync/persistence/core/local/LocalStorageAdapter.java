@@ -209,6 +209,11 @@ public class LocalStorageAdapter implements IStorageAdapter {
                 maxAllowedOffset = offset;
             }
 
+            if (maxAllowedOffset == 0) {
+                // truncate the file to zero length
+                randomAccessFile.setLength(0);
+            }
+
             randomAccessFile.seek(maxAllowedOffset);
             randomAccessFile.write(bytes);
             randomAccessFile.close();
