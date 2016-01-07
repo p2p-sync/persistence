@@ -111,6 +111,30 @@ public interface IStorageAdapter {
             throws InputOutputException;
 
     /**
+     * Checks whether the given path element represents a file
+     *
+     * @param path The path to check
+     *
+     * @return True, if the given path is a file, false otherwise
+     *
+     * @throws InputOutputException If the path does not exist
+     */
+    boolean isFile(IPathElement path)
+            throws InputOutputException;
+
+    /**
+     * Checks whether the givne path element represents a directory
+     *
+     * @param path The path to check
+     *
+     * @return True, if the given path is a directory, false otherwise
+     *
+     * @throws InputOutputException If the path does not exists
+     */
+    boolean isDir(IPathElement path)
+            throws InputOutputException;
+
+    /**
      * Returns the root directory of this storage adapter
      *
      * @return The root directory of this storage adapter

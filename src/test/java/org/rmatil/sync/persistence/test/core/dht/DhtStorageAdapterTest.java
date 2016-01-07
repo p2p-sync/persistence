@@ -399,4 +399,55 @@ public class DhtStorageAdapterTest {
         DhtStorageAdapter tmpAdapter = new DhtStorageAdapter(tmpPeer);
     }
 
+    @Test
+    public void testIsFile()
+            throws InputOutputException, InterruptedException {
+        // persist path under protection of the public key of peer1
+        dhtStorageAdapter1.persist(StorageType.FILE, path1, data);
+
+        // wait to for propagating data among peers
+        Thread.sleep(1000L);
+
+        byte[] receivedContent = dhtStorageAdapter1.read(path1);
+        assertArrayEquals("Content is not the same", data, receivedContent);
+
+        // should be the same since path has the same protection key
+        byte[] receivedContent2 = dhtStorageAdapter2.read(path1);
+        assertArrayEquals("Content should not be empty", data, receivedContent2);
+
+        assertTrue("File should exist", dhtStorageAdapter1.isFile(path1));
+        assertFalse("File should not be a directory", dhtStorageAdapter1.isDir(path1));
+
+        assertTrue("File should exist", dhtStorageAdapter2.isFile(path1));
+        assertFalse("File should not be a directory", dhtStorageAdapter2.isDir(path1));
+
+        thrown.expect(InputOutputException.class);
+        dhtStorageAdapter1.isFile(new DhtPathElement("blib", "blob", "blub"));
+    }
+
+    @Test
+    public void testIsDir()
+            throws InputOutputException, InterruptedException {
+        // persist path under protection of the public key of peer1
+        dhtStorageAdapter1.persist(StorageType.FILE, path1, data);
+
+        // wait to for propagating data among peers
+        Thread.sleep(1000L);
+
+        byte[] receivedContent = dhtStorageAdapter1.read(path1);
+        assertArrayEquals("Content is not the same", data, receivedContent);
+
+        // should be the same since path has the same protection key
+        byte[] receivedContent2 = dhtStorageAdapter2.read(path1);
+        assertArrayEquals("Content should not be empty", data, receivedContent2);
+
+        assertFalse("File should not be a dir", dhtStorageAdapter1.isDir(path1));
+        assertTrue("Dir should not be a file", dhtStorageAdapter1.isFile(path1));
+
+        assertFalse("File should not be a dir", dhtStorageAdapter2.isDir(path1));
+        assertTrue("Dir should not be a file", dhtStorageAdapter2.isFile(path1));
+
+        thrown.expect(InputOutputException.class);
+        dhtStorageAdapter1.isFile(new DhtPathElement("blib", "blob", "blub"));
+    }
 }

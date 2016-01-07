@@ -5,15 +5,13 @@ import org.junit.rules.ExpectedException;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.dht.DhtPathElement;
-import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.local.LocalStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.persistence.test.config.Config;
 import org.rmatil.sync.persistence.test.util.FileUtil;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -72,7 +70,7 @@ public class LocalStorageAdapterTest {
 
         localStorageAdapter.persist(StorageType.FILE, path, content.getBytes());
 
-        byte[] readContent = null;
+        byte[] readContent;
         readContent = Files.readAllBytes(ROOT_TEST_DIR.resolve(Config.DEFAULT.getTestFileName1()));
 
         assertArrayEquals("Content is not equal", content.getBytes(), readContent);
@@ -334,5 +332,49 @@ public class LocalStorageAdapterTest {
         localStorageAdapter.delete(dir);
 
         assertFalse("Exist failed after dir deletion", localStorageAdapter.exists(StorageType.DIRECTORY, dir));
+    }
+
+    @Test
+    public void testIsFile()
+            throws InputOutputException, IOException {
+        String content = "Feel the rhythm feel the blues, it's bobsled time";
+        IPathElement path = new LocalPathElement(Config.DEFAULT.getTestFileName1());
+
+        localStorageAdapter.persist(StorageType.FILE, path, content.getBytes());
+
+        byte[] readContent;
+        readContent = Files.readAllBytes(ROOT_TEST_DIR.resolve(Config.DEFAULT.getTestFileName1()));
+
+        assertArrayEquals("Content is not equal", content.getBytes(), readContent);
+
+        assertTrue("File should be a file", localStorageAdapter.isFile(path));
+        assertFalse("File should not be a dir", localStorageAdapter.isDir(path));
+
+        thrown.expect(InputOutputException.class);
+        // this should throw an exception since the file does not exist
+        localStorageAdapter.isDir(new LocalPathElement("someRandomFile.txt"));
+
+        thrown.expect(InputOutputException.class);
+        localStorageAdapter.isFile(new LocalPathElement("myRandomDir/myRandomFile.txt"));
+
+        // remove the file
+        localStorageAdapter.delete(path);
+    }
+
+    @Test
+    public void testIsDir()
+            throws InputOutputException {
+        IPathElement path = new LocalPathElement("someDir");
+        localStorageAdapter.persist(StorageType.DIRECTORY, path, null);
+
+        assertTrue("Dir should exist after creating", localStorageAdapter.exists(StorageType.DIRECTORY, path));
+
+        assertTrue("Dir should be a directory", localStorageAdapter.isDir(path));
+        assertFalse("Dir should not be a file", localStorageAdapter.isFile(path));
+
+        thrown.expect(InputOutputException.class);
+        localStorageAdapter.isDir(new LocalPathElement("someDir/at/someRandom/Place"));
+
+        localStorageAdapter.delete(path);
     }
 }

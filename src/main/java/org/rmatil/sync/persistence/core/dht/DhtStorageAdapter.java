@@ -272,7 +272,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
      * the DHT is completely retransmitted through the network.
      * Due to consistency reasons, contents are first rewritten to the
      * new path and then removed from the old one.
-     *
+     * <p>
      * {@inheritDoc}
      */
     @Override
@@ -354,11 +354,29 @@ public class DhtStorageAdapter implements IStorageAdapter {
             throw new InputOutputException(e);
         }
 
-        if (null == futureGet.data()) {
-            return false;
+        return null != futureGet.data();
+    }
+
+    @Override
+    synchronized public boolean isFile(IPathElement path)
+            throws InputOutputException {
+        if (! this.exists(StorageType.FILE, path)) {
+            throw new InputOutputException("Can not check whether the given path " + path.getPath() + " is a file. The element does not exist in the DHT");
         }
 
+        // we only have "files" in the DHT
         return true;
+    }
+
+    @Override
+    synchronized public boolean isDir(IPathElement path)
+            throws InputOutputException {
+        if (! this.exists(StorageType.FILE, path)) {
+            throw new InputOutputException("Can not check whether the given path " + path.getPath() + " is a directory. The element does not exist in the DHT");
+        }
+
+        // we only have "files" in the DHT
+        return false;
     }
 
     @Override

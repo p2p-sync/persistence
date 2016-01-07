@@ -167,6 +167,30 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
+    synchronized public boolean isFile(IPathElement path)
+            throws InputOutputException {
+        Path filePath = rootDir.resolve(path.getPath());
+
+        if (! filePath.toFile().exists()) {
+            throw new InputOutputException("Can not check whether element on path " + path.getPath() + " is a file: No such file or directory");
+        }
+
+        return filePath.toFile().isFile();
+    }
+
+    @Override
+    synchronized public boolean isDir(IPathElement path)
+            throws InputOutputException {
+        Path filePath = rootDir.resolve(path.getPath());
+
+        if (! filePath.toFile().exists()) {
+            throw new InputOutputException("Can not check whether element on path " + path.getPath() + " is a directory: No such file or directory");
+        }
+
+        return filePath.toFile().isDirectory();
+    }
+
+    @Override
     public Path getRootDir() {
         return this.rootDir;
     }
