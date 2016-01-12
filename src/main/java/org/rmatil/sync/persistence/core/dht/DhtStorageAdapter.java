@@ -16,6 +16,7 @@ import org.rmatil.sync.persistence.core.dht.listener.DhtPutListener;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
 import java.nio.file.Path;
+import java.util.List;
 
 
 public class DhtStorageAdapter implements IStorageAdapter {
@@ -377,6 +378,12 @@ public class DhtStorageAdapter implements IStorageAdapter {
 
         // we only have "files" in the DHT
         return false;
+    }
+
+    @Override
+    public List<IPathElement> getDirectoryContents(IPathElement directory)
+            throws InputOutputException {
+        throw new InputOutputException("Directories are not supported");
     }
 
     @Override

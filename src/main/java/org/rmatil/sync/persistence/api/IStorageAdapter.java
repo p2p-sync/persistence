@@ -3,6 +3,7 @@ package org.rmatil.sync.persistence.api;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * An adapter for various storage implementations.
@@ -133,6 +134,10 @@ public interface IStorageAdapter {
      */
     boolean isDir(IPathElement path)
             throws InputOutputException;
+
+
+    List<IPathElement> getDirectoryContents(IPathElement directory)
+        throws InputOutputException;
 
     /**
      * Returns the root directory of this storage adapter

@@ -6,17 +6,16 @@ import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.FileMetaInfo;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
-import sun.security.x509.IPAddressName;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
 
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
-import static java.nio.file.StandardOpenOption.WRITE;
+import static java.nio.file.StandardOpenOption.*;
 
 /**
  * A storage adapter which stores the data on local disk
@@ -114,11 +113,35 @@ public class LocalStorageAdapter implements IStorageAdapter {
             throw new InputOutputException("Target path " + newFilePath.toString() + " does already exist");
         }
 
-        try {
-            Files.move(oldFilePath, newFilePath, StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException e) {
-            throw new InputOutputException(e);
+        switch (storageType) {
+            case FILE:
+                try {
+                    Files.move(oldFilePath, newFilePath, StandardCopyOption.ATOMIC_MOVE);
+                } catch (IOException e) {
+                    throw new InputOutputException(e);
+                }
+                break;
+            case DIRECTORY:
+                // https://github.com/carlspring/commons-io/blob/master/src/main/java/org/carlspring/commons/io/FileUtils.java
+                // https://github.com/carlspring/commons-io/blob/master/src/test/java/org/carlspring/commons/io/FileUtilsTest.java
+                if (! oldFilePath.toFile().isDirectory()) {
+                    throw new InputOutputException(oldFilePath.toAbsolutePath().toString() + " is not a directory!");
+                }
+
+                if (! newFilePath.toFile().exists()) {
+                    newFilePath.toFile().mkdirs();
+                }
+
+                try {
+                    // merge files
+                    Files.move(oldFilePath, newFilePath, StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    throw new InputOutputException(e);
+                }
+
+                break;
         }
+
     }
 
     @Override
@@ -188,6 +211,33 @@ public class LocalStorageAdapter implements IStorageAdapter {
         }
 
         return filePath.toFile().isDirectory();
+    }
+
+    @Override
+    public List<IPathElement> getDirectoryContents(IPathElement directory)
+            throws InputOutputException {
+        Path filePath = rootDir.resolve(directory.getPath());
+
+        if (! filePath.toFile().exists()) {
+            throw new InputOutputException("No such file or directory");
+        }
+
+        if (! filePath.toFile().isDirectory()) {
+            throw new InputOutputException("Path must be a directory");
+        }
+
+        List<IPathElement> pathElements = new ArrayList<>();
+        File[] files = filePath.toFile().listFiles();
+
+        if (null == files) {
+            throw new InputOutputException("Path must be a directory");
+        }
+
+        for (File file : files) {
+            pathElements.add(new LocalPathElement(rootDir.relativize(file.toPath()).toString()));
+        }
+
+        return pathElements;
     }
 
     @Override
