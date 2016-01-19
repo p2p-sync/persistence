@@ -136,8 +136,18 @@ public interface IStorageAdapter {
             throws InputOutputException;
 
 
+    /**
+     * Returns all contents of the given directory relative to the root directory
+     * of the given object store
+     *
+     * @param directory The directory of which to get its contents
+     *
+     * @return A list of all directory contents
+     *
+     * @throws InputOutputException If the given path is not a directory
+     */
     List<IPathElement> getDirectoryContents(IPathElement directory)
-        throws InputOutputException;
+            throws InputOutputException;
 
     /**
      * Returns the root directory of this storage adapter

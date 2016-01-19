@@ -235,6 +235,13 @@ public class LocalStorageAdapter implements IStorageAdapter {
 
         for (File file : files) {
             pathElements.add(new LocalPathElement(rootDir.relativize(file.toPath()).toString()));
+
+            // add all subdirs too
+            if (file.isDirectory()) {
+                pathElements.addAll(this.getDirectoryContents(
+                        new LocalPathElement(this.rootDir.relativize(file.toPath()).toString())
+                ));
+            }
         }
 
         return pathElements;
