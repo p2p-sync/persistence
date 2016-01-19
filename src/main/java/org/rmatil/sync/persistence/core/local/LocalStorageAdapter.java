@@ -8,10 +8,7 @@ import org.rmatil.sync.persistence.core.FileMetaInfo;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -226,20 +223,29 @@ public class LocalStorageAdapter implements IStorageAdapter {
             throw new InputOutputException("Path must be a directory");
         }
 
+        File canonicalFile;
+        Path canonicalRootPath;
+        try {
+            canonicalFile = filePath.toFile().getCanonicalFile();
+            canonicalRootPath = Paths.get(rootDir.toFile().getCanonicalPath());
+        } catch (IOException e) {
+            throw new InputOutputException("Can not convert to canonical path. Message: " + e.getMessage());
+        }
+
         List<IPathElement> pathElements = new ArrayList<>();
-        File[] files = filePath.toFile().listFiles();
+        File[] files = canonicalFile.listFiles();
 
         if (null == files) {
             throw new InputOutputException("Path must be a directory");
         }
 
         for (File file : files) {
-            pathElements.add(new LocalPathElement(rootDir.relativize(file.toPath()).toString()));
+            pathElements.add(new LocalPathElement(canonicalRootPath.relativize(file.toPath()).toString()));
 
             // add all subdirs too
             if (file.isDirectory()) {
                 pathElements.addAll(this.getDirectoryContents(
-                        new LocalPathElement(this.rootDir.relativize(file.toPath()).toString())
+                        new LocalPathElement(canonicalRootPath.relativize(file.toPath()).toString())
                 ));
             }
         }

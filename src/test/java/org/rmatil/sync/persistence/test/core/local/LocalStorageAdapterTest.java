@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -372,9 +373,51 @@ public class LocalStorageAdapterTest {
         assertTrue("Dir should be a directory", localStorageAdapter.isDir(path));
         assertFalse("Dir should not be a file", localStorageAdapter.isFile(path));
 
+        localStorageAdapter.delete(path);
+        
         thrown.expect(InputOutputException.class);
         localStorageAdapter.isDir(new LocalPathElement("someDir/at/someRandom/Place"));
 
+    }
+
+    @Test
+    public void testGetDirContents()
+            throws InputOutputException {
+        IPathElement path = new LocalPathElement("someDir_dircontents");
+        localStorageAdapter.persist(StorageType.DIRECTORY, path, null);
+        IPathElement path2 = new LocalPathElement("someDir_dircontents/blubDir");
+        localStorageAdapter.persist(StorageType.DIRECTORY, path2, null);
+        IPathElement path3 = new LocalPathElement("someDir_dircontents/blubDir/myFile.txt");
+        localStorageAdapter.persist(StorageType.DIRECTORY, path3, "Blub blub".getBytes());
+
+        List<IPathElement> dirContents = localStorageAdapter.getDirectoryContents(path);
+        assertEquals("Should only contain the contents, not itself", 2, dirContents.size());
+
+        assertEquals("First element should be path2", path2.getPath(), dirContents.get(0).getPath());
+        assertEquals("2nd element should be path3", path3.getPath(), dirContents.get(1).getPath());
+
+
+        IPathElement relPath = new LocalPathElement(".");
+        IPathElement relPath2 = new LocalPathElement("./");
+
+        List<IPathElement> dirContents2 = localStorageAdapter.getDirectoryContents(relPath);
+        List<IPathElement> dirContents3 = localStorageAdapter.getDirectoryContents(relPath2);
+
+        assertEquals("Should contain all 3 elements", 3, dirContents2.size());
+        assertEquals("Should contain all 3 elements", 3, dirContents3.size());
+
+        assertEquals("1st item should be someDir_dircontents", path.getPath(), dirContents2.get(0).getPath());
+        assertEquals("1st item should be someDir_dircontents", path.getPath(), dirContents3.get(0).getPath());
+
+        assertEquals("2nd item should be someDir", path2.getPath(), dirContents2.get(1).getPath());
+        assertEquals("2nd item should be someDir", path2.getPath(), dirContents3.get(1).getPath());
+
+        assertEquals("3rd item should be someDir", path3.getPath(), dirContents2.get(2).getPath());
+        assertEquals("3rd item should be someDir", path3.getPath(), dirContents3.get(2).getPath());
+
+
+        localStorageAdapter.delete(path3);
+        localStorageAdapter.delete(path2);
         localStorageAdapter.delete(path);
     }
 }
