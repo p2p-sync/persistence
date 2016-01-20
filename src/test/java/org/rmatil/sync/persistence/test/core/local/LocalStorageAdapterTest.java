@@ -149,12 +149,22 @@ public class LocalStorageAdapterTest {
 
     @Test
     public void testDelete()
-            throws InputOutputException {
+            throws InputOutputException, IOException {
         FileUtil.createTestFile(ROOT_TEST_DIR);
 
         IPathElement path = new LocalPathElement(Config.DEFAULT.getTestFileName1());
 
         localStorageAdapter.delete(path);
+
+        assertFalse("File should not exist anymore", Files.exists(Config.DEFAULT.getRootTestDir().resolve(Config.DEFAULT.getTestFileName1())));
+
+        FileUtil.createTestFile(ROOT_TEST_DIR);
+        localStorageAdapter.delete(new LocalPathElement("./"));
+
+        assertFalse("TestDir should not exist anymore", Files.exists(Config.DEFAULT.getRootTestDir()));
+
+        // recreate root test dir
+        Files.createDirectory(ROOT_TEST_DIR);
     }
 
     @Test
@@ -374,7 +384,7 @@ public class LocalStorageAdapterTest {
         assertFalse("Dir should not be a file", localStorageAdapter.isFile(path));
 
         localStorageAdapter.delete(path);
-        
+
         thrown.expect(InputOutputException.class);
         localStorageAdapter.isDir(new LocalPathElement("someDir/at/someRandom/Place"));
 

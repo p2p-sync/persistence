@@ -324,9 +324,14 @@ public class LocalStorageAdapter implements IStorageAdapter {
             throw new InputOutputException(path.toString() + " (No such file or directory)");
         }
 
-        File file = path.toFile();
+		File file;
+		try {
+			file = path.toFile().getCanonicalFile();
+		} catch (IOException e) {
+			throw new InputOutputException("Could not get canonical file from path " + path.toString());
+		}
 
-        if (file.isDirectory()) {
+		if (file.isDirectory()) {
             File[] contents = file.listFiles();
 
             if (null != contents) {
