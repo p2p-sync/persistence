@@ -27,17 +27,17 @@ public class DhtPutListener implements BaseFutureListener<FuturePut> {
     public void operationComplete(FuturePut future)
             throws Exception {
         if (future.isSuccess()) {
-            logger.debug("[Peer @ " + this.dht.peerAddress().inetAddress().toString() + "]: Put of data succeeded. ");
+            logger.debug("[Peer @ " + this.dht.peerAddress().inetAddress().getHostAddress() + ":" + this.dht.peerAddress().tcpPort()+ "]: Put of data succeeded. ");
         } else if (future.isSuccessPartially()) {
-            logger.debug("[Peer @ " + this.dht.peerAddress().inetAddress().toString() + "]: Put of data was only partially successful");
+            logger.debug("[Peer @ " + this.dht.peerAddress().inetAddress().getHostAddress() + ":" + this.dht.peerAddress().tcpPort()+ "]: Put of data was only partially successful");
         } else if (future.isFailed()) {
-            logger.warn("[Peer @ " + this.dht.peerAddress().inetAddress().toString() + "]: Put od data failed. Reason: " + future.failedReason());
+            logger.warn("[Peer @ " + this.dht.peerAddress().inetAddress().getHostAddress() + ":" + this.dht.peerAddress().tcpPort()+ "]: Put od data failed. Reason: " + future.failedReason());
         }
     }
 
     @Override
     public void exceptionCaught(Throwable t)
             throws Exception {
-        logger.error("[Peer @ " + this.dht.peerAddress().inetAddress().toString() + "]: Caught exception " + t.getMessage());
+        logger.error("[Peer @ " + this.dht.peerAddress().inetAddress().getHostAddress() + ":" + this.dht.peerAddress().tcpPort()+ "]: Caught exception " + t.getMessage());
     }
 }

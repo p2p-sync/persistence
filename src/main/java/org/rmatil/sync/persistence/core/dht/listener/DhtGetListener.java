@@ -26,16 +26,16 @@ public class DhtGetListener implements BaseFutureListener<FutureGet> {
     public void operationComplete(FutureGet future)
             throws Exception {
         if (future.isSuccess()) {
-            logger.debug("[Peer @ " + this.dht.peerAddress().inetAddress().toString() + "]: Get of data succeeded. ");
+            logger.debug("[Peer @ " + this.dht.peerAddress().inetAddress().getHostAddress() + ":" + this.dht.peerAddress().tcpPort() + "]: Get of data succeeded. ");
         } else if (future.isFailed()) {
-            logger.warn("[Peer @ " + this.dht.peerAddress().inetAddress().toString() + "]: Get od data failed. Reason: " + future.failedReason());
+            logger.warn("[Peer @ " + this.dht.peerAddress().inetAddress().getHostAddress() + ":" + this.dht.peerAddress().tcpPort() + "]: Get od data failed. Reason: " + future.failedReason());
         }
     }
 
     @Override
     public void exceptionCaught(Throwable t)
             throws Exception {
-        logger.error("[Peer @ " + this.dht.peerAddress().inetAddress().toString() + "]: Caught exception " + t.getMessage());
+        logger.error("[Peer @ " + this.dht.peerAddress().inetAddress().getHostAddress() + ":" + this.dht.peerAddress().tcpPort() + "]: Caught exception " + t.getMessage());
     }
 
 }
