@@ -23,6 +23,8 @@ public class DhtStorageAdapter implements IStorageAdapter {
 
     protected final PeerDHT dht;
 
+    protected final DhtCache cache;
+
     /**
      * Creates a storage adapter for the DHT. This storage adapter is dedicated
      * to the given location key. To protect each peers domain, the given domain
@@ -49,6 +51,35 @@ public class DhtStorageAdapter implements IStorageAdapter {
      * @param dht A PeerDHT bootstrapped with domain protection
      */
     public DhtStorageAdapter(PeerDHT dht) {
+        this(dht, 0);
+    }
+
+    /**
+     * Creates a storage adapter for the DHT. This storage adapter is dedicated
+     * to the given location key. To protect each peers domain, the given domain
+     * protection key is used.
+     * <p>
+     * Note: To make use of domain protection, the given PeerDHT must be bootstrapped like
+     * in the following example:
+     * <p>
+     * <pre>
+     *     KeyPairGenerator gen = KeyPairGenerator.getInstance("DSA");
+     *     KeyPair keyPair = gen.generateKeyPair();
+     *
+     *     PeerDHT peer = new PeerBuilderDHT(new PeerBuilder(keyPair).ports(4003).start()).start();
+     *     peer
+     *       .storageLayer()
+     *       .protection(
+     *         ProtectionEnable.ALL,
+     *         ProtectionMode.MASTER_PUBLIC_KEY,
+     *         ProtectionEnable.ALL,
+     *         ProtectionMode.MASTER_PUBLIC_KEY
+     *       );
+     * </pre>
+     *
+     * @param dht A PeerDHT bootstrapped with domain protection
+     */
+    public DhtStorageAdapter(PeerDHT dht, long timeToLive) {
         if (null == dht.peerBean().keyPair().getPublic() ||
                 null == dht.peerBean().keyPair().getPrivate()) {
             // we require a public private key pair to protect domains
@@ -56,6 +87,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
         }
 
         this.dht = dht;
+        this.cache = new DhtCache(timeToLive);
     }
 
     @Override
@@ -69,6 +101,8 @@ public class DhtStorageAdapter implements IStorageAdapter {
         if (StorageType.FILE != type) {
             throw new InputOutputException("Only files are allowed to be stored in the DHT");
         }
+
+        this.cache.put((DhtPathElement) path, bytes);
 
         Data data = new Data(bytes);
 
@@ -132,6 +166,7 @@ public class DhtStorageAdapter implements IStorageAdapter {
         System.arraycopy(existingBytes, 0, targetBytes, 0, maxAllowedWriteSize);
         System.arraycopy(bytes, 0, targetBytes, intOffset, bytes.length);
 
+        this.cache.put((DhtPathElement) path, targetBytes);
 
         Data data = new Data(targetBytes);
 
@@ -162,6 +197,8 @@ public class DhtStorageAdapter implements IStorageAdapter {
             throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
         }
 
+        this.cache.clear((DhtPathElement) path);
+
         FutureRemove futureRemove = this.dht
                 .remove(((DhtPathElement) path).getLocationKey())
                 .contentKey(((DhtPathElement) path).getContentKey())
@@ -188,6 +225,14 @@ public class DhtStorageAdapter implements IStorageAdapter {
 
         if (! (path instanceof DhtPathElement)) {
             throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
+        }
+
+
+        byte[] data = this.cache.get((DhtPathElement) path);
+
+        if (null != data) {
+            // we got a cached version of the data
+            return data;
         }
 
         FutureGet futureGet = this.dht
@@ -222,28 +267,36 @@ public class DhtStorageAdapter implements IStorageAdapter {
             throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
         }
 
-        FutureGet futureGet = this.dht
-                .get(((DhtPathElement) path).getLocationKey())
-                .contentKey(((DhtPathElement) path).getContentKey())
-                .domainKey(((DhtPathElement) path).getDomainKey())
-                .start();
+        byte[] cachedData = this.cache.get((DhtPathElement) path);
 
-        futureGet.addListener(
-                new DhtGetListener(this.dht)
-        );
+        byte[] contents;
+        if (null != cachedData) {
+            contents = cachedData;
+        } else{
+            FutureGet futureGet = this.dht
+                    .get(((DhtPathElement) path).getLocationKey())
+                    .contentKey(((DhtPathElement) path).getContentKey())
+                    .domainKey(((DhtPathElement) path).getDomainKey())
+                    .start();
 
-        try {
-            futureGet.await();
-        } catch (InterruptedException e) {
-            // rethrow using our exception
-            throw new InputOutputException(e);
+            futureGet.addListener(
+                    new DhtGetListener(this.dht)
+            );
+
+            try {
+                futureGet.await();
+            } catch (InterruptedException e) {
+                // rethrow using our exception
+                throw new InputOutputException(e);
+            }
+
+            if (null == futureGet.data()) {
+                return new byte[0];
+            }
+
+            contents = futureGet.data().toBytes();
         }
 
-        if (null == futureGet.data()) {
-            return new byte[0];
-        }
-
-        byte[] contents = futureGet.data().toBytes();
         // check offset to be smaller than the fetched content
         // TODO: fix int conversion
         int srcPos = Math.min(contents.length, (int) offset);
@@ -287,7 +340,9 @@ public class DhtStorageAdapter implements IStorageAdapter {
         }
 
         // first try to write to new path
+        this.cache.put((DhtPathElement) newPath, contents);
         this.persist(StorageType.FILE, newPath, contents);
+        this.cache.clear((DhtPathElement) oldPath);
         this.delete(oldPath);
     }
 
@@ -300,6 +355,12 @@ public class DhtStorageAdapter implements IStorageAdapter {
 
         if (! this.exists(StorageType.FILE, path)) {
             throw new InputOutputException("Could not get meta information for " + path.getPath() + ". No such file or directory");
+        }
+
+        byte[] cachedContent = this.cache.get((DhtPathElement) path);
+
+        if (null != cachedContent) {
+            return new FileMetaInfo(cachedContent.length, true, "");
         }
 
         FutureGet futureGet = this.dht
@@ -336,6 +397,12 @@ public class DhtStorageAdapter implements IStorageAdapter {
 
         if (StorageType.FILE != storageType) {
             throw new InputOutputException("Only files are allowed to be read from the DHT");
+        }
+
+        byte[] cachedContent = this.cache.get((DhtPathElement) path);
+
+        if (null != cachedContent) {
+            return true;
         }
 
         FutureGet futureGet = this.dht
