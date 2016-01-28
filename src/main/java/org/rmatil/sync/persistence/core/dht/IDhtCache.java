@@ -1,5 +1,7 @@
 package org.rmatil.sync.persistence.core.dht;
 
+import org.rmatil.sync.persistence.core.dht.base.ADhtPathElement;
+
 /**
  * The <code>IDhtCache</code> interface should be implemented
  * by classes which provide a cache layer to the {@link DhtStorageAdapter}
@@ -16,7 +18,7 @@ public interface IDhtCache {
      * @param pathElement The path element
      * @param bytes       The associated data to cache
      */
-    void put(DhtPathElement pathElement, byte[] bytes);
+    void put(ADhtPathElement pathElement, byte[] bytes);
 
     /**
      * Returns the data stored in the cache for the given
@@ -27,14 +29,14 @@ public interface IDhtCache {
      *
      * @return The data or null, if no element is associated with the given path
      */
-    byte[] get(DhtPathElement pathElement);
+    byte[] get(ADhtPathElement pathElement);
 
     /**
      * Resets the content of the given path element
      *
      * @param pathElement The path element for which to reset the cache
      */
-    void clear(DhtPathElement pathElement);
+    void clear(ADhtPathElement pathElement);
 
     /**
      * Clears the whole cache

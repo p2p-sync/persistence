@@ -4,7 +4,6 @@ import net.tomp2p.connection.Bindings;
 import net.tomp2p.connection.StandardProtocolFamily;
 import net.tomp2p.dht.PeerBuilderDHT;
 import net.tomp2p.dht.PeerDHT;
-import net.tomp2p.dht.StorageLayer;
 import net.tomp2p.futures.FutureBootstrap;
 import net.tomp2p.futures.FutureDiscover;
 import net.tomp2p.p2p.PeerBuilder;
@@ -13,10 +12,10 @@ import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.dht.DhtPathElement;
 import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
+import org.rmatil.sync.persistence.core.dht.UnprotectedDhtPathElement;
+import org.rmatil.sync.persistence.core.dht.UnprotectedDhtStorageAdapter;
 import org.rmatil.sync.persistence.core.local.LocalPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.persistence.test.config.Config;
@@ -26,13 +25,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 
 import static org.junit.Assert.*;
 
-public class DhtStorageAdapterTest {
+public class UnprotectedDhtStorageAdapterTest {
 
     protected final static Logger logger = LoggerFactory.getLogger(DhtStorageAdapterTest.class);
 
@@ -42,11 +39,8 @@ public class DhtStorageAdapterTest {
     protected static PeerDHT peer1;
     protected static PeerDHT peer2;
 
-    protected static IStorageAdapter dhtStorageAdapter1;
-    protected static IStorageAdapter dhtStorageAdapter2;
-
-    protected static KeyPair keyPair1;
-    protected static KeyPair keyPair2;
+    protected static UnprotectedDhtStorageAdapter dhtStorageAdapter1;
+    protected static UnprotectedDhtStorageAdapter dhtStorageAdapter2;
 
     protected static IPathElement path1;
     protected static byte[] data = "Some content".getBytes();
@@ -57,33 +51,15 @@ public class DhtStorageAdapterTest {
     public static void setup()
             throws IOException, NoSuchAlgorithmException {
 
-        localPathElement = new LocalPathElement("a/b/c");
+        localPathElement = new LocalPathElement("a/b/c.d");
 
         Bindings b = new Bindings().addProtocol(StandardProtocolFamily.INET).addAddress(InetAddress.getByName(Config.DEFAULT.getTestIpV4Address()));
 
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("DSA");
-        keyPair1 = generator.genKeyPair();
-        keyPair2 = generator.genKeyPair();
-
         // bootstrap peer
-        // set keypair for domain protection
-        peer1 = new PeerBuilderDHT(new PeerBuilder(Number160.ONE).keyPair(keyPair1).ports(Config.DEFAULT.getTestPort()).bindings(b).start()).start();
-        peer1.storageLayer().protection(
-                StorageLayer.ProtectionEnable.ALL,
-                StorageLayer.ProtectionMode.NO_MASTER,
-                StorageLayer.ProtectionEnable.ALL,
-                StorageLayer.ProtectionMode.NO_MASTER
-        );
+        peer1 = new PeerBuilderDHT(new PeerBuilder(Number160.ONE).ports(Config.DEFAULT.getTestPort()).bindings(b).start()).start();
 
         // connect to bootstrap peer
-        // set keypair for domain protection
-        peer2 = new PeerBuilderDHT(new PeerBuilder(Number160.createHash(2)).keyPair(keyPair2).masterPeer(peer1.peer()).start()).start();
-        peer2.storageLayer().protection(
-                StorageLayer.ProtectionEnable.ALL,
-                StorageLayer.ProtectionMode.NO_MASTER,
-                StorageLayer.ProtectionEnable.ALL,
-                StorageLayer.ProtectionMode.NO_MASTER
-        );
+        peer2 = new PeerBuilderDHT(new PeerBuilder(Number160.createHash(2)).masterPeer(peer1.peer()).start()).start();
 
         InetAddress connectionAddress = Inet4Address.getByName(Config.DEFAULT.getTestIpV4Address());
 
@@ -99,10 +75,10 @@ public class DhtStorageAdapterTest {
             logger.error("Failed to bootstrap peers. Reason: " + futureBootstrap.failedReason());
         }
 
-        path1 = new DhtPathElement("location key", "content key", "domain-key");
+        path1 = new UnprotectedDhtPathElement("location key", "content key");
 
-        dhtStorageAdapter1 = new DhtStorageAdapter(peer1);
-        dhtStorageAdapter2 = new DhtStorageAdapter(peer2, 0);
+        dhtStorageAdapter1 = new UnprotectedDhtStorageAdapter(peer1);
+        dhtStorageAdapter2 = new UnprotectedDhtStorageAdapter(peer2, 0);
 
     }
 
@@ -131,7 +107,7 @@ public class DhtStorageAdapterTest {
         byte[] receivedContent = dhtStorageAdapter1.read(path1);
         assertArrayEquals("Content is not the same", data, receivedContent);
 
-        // should be the same since path has the same protection key
+        // should be the same since no protection is enabled
         byte[] receivedContent2 = dhtStorageAdapter2.read(path1);
         assertArrayEquals("Content should not be empty", data, receivedContent2);
     }
@@ -153,7 +129,7 @@ public class DhtStorageAdapterTest {
         byte[] receivedContentAfterModify = dhtStorageAdapter1.read(path1);
         assertEquals("String is not equals", "Some content blub blub", new String(receivedContentAfterModify));
 
-        // should be the same since path has the same protection key
+        // should be the same since path has no protection key is set
         byte[] receivedContent2 = dhtStorageAdapter2.read(path1);
         assertEquals("Content should not be empty", "Some content blub blub", new String(receivedContent2));
 
@@ -174,7 +150,7 @@ public class DhtStorageAdapterTest {
             throws InputOutputException {
         thrown.expect(InputOutputException.class);
 
-        IPathElement path = new DhtPathElement("username1", "content key 2", "domain key 2");
+        IPathElement path = new UnprotectedDhtPathElement("username1", "content key 2");
 
         dhtStorageAdapter1.persist(StorageType.DIRECTORY, path, null);
     }
@@ -183,10 +159,9 @@ public class DhtStorageAdapterTest {
     public void testReadOffset()
             throws InputOutputException {
         String content = "Feel the rhythm feel the blues, it's bobsled time";
-        IPathElement path = new DhtPathElement(
+        IPathElement path = new UnprotectedDhtPathElement(
                 "location key",
-                "content key",
-                "domain key"
+                "content key"
         );
 
         // persist path under protection of the public key of peer1
@@ -213,16 +188,18 @@ public class DhtStorageAdapterTest {
 
         assertTrue("path1 does not exist", dhtStorageAdapter1.exists(StorageType.FILE, path1));
 
-        IPathElement newPath = new DhtPathElement(
+        IPathElement newPath = new UnprotectedDhtPathElement(
                 "location key 2",
-                "content key 2",
-                "domain key 2"
+                "content key 2"
         );
 
         dhtStorageAdapter1.move(StorageType.FILE, path1, newPath);
 
         assertTrue("new Path should exist after moving", dhtStorageAdapter1.exists(StorageType.FILE, newPath));
         assertFalse("old path should not exist after moving anymore", dhtStorageAdapter1.exists(StorageType.FILE, path1));
+
+        assertTrue("new Path should exist after moving", dhtStorageAdapter2.exists(StorageType.FILE, newPath));
+        assertFalse("old path should not exist after moving anymore", dhtStorageAdapter2.exists(StorageType.FILE, path1));
 
         dhtStorageAdapter1.delete(newPath);
     }
@@ -233,10 +210,9 @@ public class DhtStorageAdapterTest {
         dhtStorageAdapter1.persist(StorageType.FILE, path1, new byte[0]);
 
         assertTrue("path1 does not exist", dhtStorageAdapter1.exists(StorageType.FILE, path1));
-        IPathElement newPath = new DhtPathElement(
+        IPathElement newPath = new UnprotectedDhtPathElement(
                 "location key 2",
-                "content key 2",
-                "domain key 2"
+                "content key 2"
         );
 
         // now create first the target path
@@ -254,10 +230,9 @@ public class DhtStorageAdapterTest {
     public void testGetMetaInformation()
             throws InputOutputException {
         String content = "Feel the rhythm feel the blues, it's bobsled time";
-        IPathElement path = new DhtPathElement(
+        IPathElement path = new UnprotectedDhtPathElement(
                 "location key",
-                "content key",
-                "domain key"
+                "content key"
         );
 
         // persist path under protection of the public key of peer1
@@ -272,10 +247,9 @@ public class DhtStorageAdapterTest {
         assertTrue("File should be a file", fileMetaInfo.isFile());
 
         thrown.expect(InputOutputException.class);
-        IPathElement notExistingPath = new DhtPathElement(
+        IPathElement notExistingPath = new UnprotectedDhtPathElement(
                 "winter",
-                "summer",
-                "spring"
+                "summer"
         );
 
         dhtStorageAdapter1.getMetaInformation(notExistingPath);
@@ -292,19 +266,13 @@ public class DhtStorageAdapterTest {
         byte[] receivedData2 = dhtStorageAdapter2.read(path1);
         assertArrayEquals("Content is not the same", data, receivedData2);
 
-        // try to delete path which is on the location key & content
-        // key of path1 but has a different key pair: This should fail
+        // try to delete path which is on the location key & content key
+        // but since it is not protected, it should remove the cotent
         dhtStorageAdapter2.delete(path1);
 
         byte[] receivedData3 = dhtStorageAdapter2.read(path1);
-        assertArrayEquals("Content should not be empty after deleting path2", data, receivedData3);
+        assertArrayEquals("Content should be empty after deleting path2", new byte[0], receivedData3);
 
-        // Only the domain owner can delete a path
-        dhtStorageAdapter2.delete(path1);
-        byte[] receivedData4 = dhtStorageAdapter1.read(path1);
-        assertArrayEquals("Content should not be empty after unauthorized deleting", data, receivedData4);
-
-        dhtStorageAdapter1.delete(path1);
 
         byte[] emptyData = dhtStorageAdapter1.read(path1);
         assertArrayEquals("Content is not empty after deletion", new byte[0], emptyData);
@@ -327,7 +295,7 @@ public class DhtStorageAdapterTest {
         assertTrue("File does not exist apparently", exists1);
         assertTrue("File does not exist apparently", exists2);
 
-        dhtStorageAdapter1.delete(path1);
+        dhtStorageAdapter2.delete(path1);
 
         boolean existsAfterDeletion1 = dhtStorageAdapter1.exists(StorageType.FILE, path1);
         boolean existsAfterDeletion2 = dhtStorageAdapter2.exists(StorageType.FILE, path1);
@@ -426,7 +394,7 @@ public class DhtStorageAdapterTest {
         assertFalse("File should not be a directory", dhtStorageAdapter2.isDir(path1));
 
         thrown.expect(InputOutputException.class);
-        dhtStorageAdapter1.isFile(new DhtPathElement("blib", "blob", "blub"));
+        dhtStorageAdapter1.isFile(new UnprotectedDhtPathElement("blib", "blob"));
     }
 
     @Test
@@ -452,7 +420,7 @@ public class DhtStorageAdapterTest {
         assertTrue("Dir should not be a file", dhtStorageAdapter2.isFile(path1));
 
         thrown.expect(InputOutputException.class);
-        dhtStorageAdapter1.isFile(new DhtPathElement("blib", "blob", "blub"));
+        dhtStorageAdapter1.isFile(new UnprotectedDhtPathElement("blib", "blob"));
     }
 
     @Test
