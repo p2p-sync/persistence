@@ -150,6 +150,18 @@ public interface IStorageAdapter {
             throws InputOutputException;
 
     /**
+     * Returns the checksum of a particular directory or file
+     *
+     * @param path The path from which to get the checksum
+     *
+     * @return A string having the checksum in it
+     *
+     * @throws InputOutputException If generating the checksum failed
+     */
+    String getChecksum(IPathElement path)
+            throws InputOutputException;
+
+    /**
      * Returns the root directory of this storage adapter
      *
      * @return The root directory of this storage adapter

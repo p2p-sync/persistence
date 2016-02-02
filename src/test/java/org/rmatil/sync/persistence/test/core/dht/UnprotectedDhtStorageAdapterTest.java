@@ -424,6 +424,18 @@ public class UnprotectedDhtStorageAdapterTest {
     }
 
     @Test
+    public void testGetChecksum()
+            throws InputOutputException, InterruptedException {
+        String content = "Feel the rythm feel the blues, it's bobsled time!";
+
+        dhtStorageAdapter1.persist(StorageType.FILE, path1, content.getBytes());
+
+        Thread.sleep(1000L);
+
+        assertEquals("Checksum should be equal", "061875632d79f95204fa082ac64d4d75", dhtStorageAdapter1.getChecksum(path1));
+    }
+
+    @Test
     public void testPersistException()
             throws InputOutputException {
         thrown.expect(InputOutputException.class);
@@ -517,6 +529,14 @@ public class UnprotectedDhtStorageAdapterTest {
         thrown.expect(InputOutputException.class);
 
         dhtStorageAdapter1.getDirectoryContents(path1);
+    }
+
+    @Test
+    public void testGetChecksumException()
+            throws InputOutputException {
+        thrown.expect(InputOutputException.class);
+
+        dhtStorageAdapter1.getChecksum(localPathElement);
     }
 
     @Test

@@ -162,6 +162,17 @@ public class UnprotectedDhtStorageAdapter extends ADhtStorageAdapter implements 
     }
 
     @Override
+    public String getChecksum(IPathElement path)
+            throws InputOutputException {
+
+        if (! (path instanceof UnprotectedDhtPathElement)) {
+            throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
+        }
+
+        return super.getChecksum((UnprotectedDhtPathElement) path, false);
+    }
+
+    @Override
     public Path getRootDir() {
         return super.getRootDir();
     }

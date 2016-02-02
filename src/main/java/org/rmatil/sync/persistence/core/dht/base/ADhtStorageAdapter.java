@@ -2,6 +2,8 @@ package org.rmatil.sync.persistence.core.dht.base;
 
 import net.tomp2p.dht.*;
 import net.tomp2p.storage.Data;
+import org.rmatil.sync.commons.hashing.Hash;
+import org.rmatil.sync.commons.hashing.HashingAlgorithm;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.FileMetaInfo;
@@ -13,7 +15,6 @@ import org.rmatil.sync.persistence.core.dht.listener.DhtPutListener;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
 import java.nio.file.Path;
-import java.util.List;
 
 public abstract class ADhtStorageAdapter {
 
@@ -47,7 +48,7 @@ public abstract class ADhtStorageAdapter {
      *
      * @param dht A PeerDHT bootstrapped with domain protection
      */
-    public ADhtStorageAdapter(PeerDHT dht) {
+    protected ADhtStorageAdapter(PeerDHT dht) {
         this(dht, 0);
     }
 
@@ -76,12 +77,12 @@ public abstract class ADhtStorageAdapter {
      *
      * @param dht A PeerDHT bootstrapped with domain protection
      */
-    public ADhtStorageAdapter(PeerDHT dht, long timeToLive) {
+    protected ADhtStorageAdapter(PeerDHT dht, long timeToLive) {
         this.dht = dht;
         this.cache = new DhtCache(timeToLive);
     }
 
-    synchronized public void persist(StorageType type, ADhtPathElement path, byte[] bytes, boolean enableProtection)
+    synchronized protected void persist(StorageType type, ADhtPathElement path, byte[] bytes, boolean enableProtection)
             throws InputOutputException {
 
         if (StorageType.FILE != type) {
@@ -117,7 +118,7 @@ public abstract class ADhtStorageAdapter {
         }
     }
 
-    synchronized public void persist(StorageType type, ADhtPathElement path, long offset, byte[] bytes, boolean enabledProtection)
+    synchronized protected void persist(StorageType type, ADhtPathElement path, long offset, byte[] bytes, boolean enabledProtection)
             throws InputOutputException {
 
         if (StorageType.FILE != type) {
@@ -182,7 +183,7 @@ public abstract class ADhtStorageAdapter {
         }
     }
 
-    synchronized public void delete(ADhtPathElement path, boolean enableProtection)
+    synchronized protected void delete(ADhtPathElement path, boolean enableProtection)
             throws InputOutputException {
 
         this.cache.clear(path);
@@ -213,7 +214,7 @@ public abstract class ADhtStorageAdapter {
 
     }
 
-    synchronized public byte[] read(ADhtPathElement path, boolean enableProtection)
+    synchronized protected byte[] read(ADhtPathElement path, boolean enableProtection)
             throws InputOutputException {
 
         byte[] data = this.cache.get(path);
@@ -252,7 +253,7 @@ public abstract class ADhtStorageAdapter {
         return futureGet.data().toBytes();
     }
 
-    synchronized public byte[] read(ADhtPathElement path, long offset, int length, boolean enableProtection)
+    synchronized protected byte[] read(ADhtPathElement path, long offset, int length, boolean enableProtection)
             throws InputOutputException {
 
         byte[] cachedData = this.cache.get(path);
@@ -322,7 +323,7 @@ public abstract class ADhtStorageAdapter {
      * <p>
      * {@inheritDoc}
      */
-    synchronized public void move(StorageType storageType, ADhtPathElement oldPath, ADhtPathElement newPath, boolean enableProtection)
+    synchronized protected void move(StorageType storageType, ADhtPathElement oldPath, ADhtPathElement newPath, boolean enableProtection)
             throws InputOutputException {
 
         byte[] contents = this.read(oldPath, enableProtection);
@@ -338,7 +339,7 @@ public abstract class ADhtStorageAdapter {
         this.delete(oldPath, enableProtection);
     }
 
-    synchronized public IFileMetaInfo getMetaInformation(ADhtPathElement path, boolean enableProtection)
+    synchronized protected IFileMetaInfo getMetaInformation(ADhtPathElement path, boolean enableProtection)
             throws InputOutputException {
 
         if (! this.exists(StorageType.FILE, path, enableProtection)) {
@@ -380,7 +381,7 @@ public abstract class ADhtStorageAdapter {
         return new FileMetaInfo(futureGet.data().toBytes().length, true, "");
     }
 
-    synchronized public boolean exists(StorageType storageType, ADhtPathElement path, boolean enableProtection)
+    synchronized protected boolean exists(StorageType storageType, ADhtPathElement path, boolean enableProtection)
             throws InputOutputException {
 
         if (StorageType.FILE != storageType) {
@@ -418,7 +419,7 @@ public abstract class ADhtStorageAdapter {
         return null != futureGet.data();
     }
 
-    synchronized public boolean isFile(ADhtPathElement path, boolean enableProtection)
+    synchronized protected boolean isFile(ADhtPathElement path, boolean enableProtection)
             throws InputOutputException {
         if (! this.exists(StorageType.FILE, path, enableProtection)) {
             throw new InputOutputException("Can not check whether the given path " + path.getPath() + " is a file. The element does not exist in the DHT");
@@ -428,7 +429,7 @@ public abstract class ADhtStorageAdapter {
         return true;
     }
 
-    synchronized public boolean isDir(ADhtPathElement path, boolean enableProtection)
+    synchronized protected boolean isDir(ADhtPathElement path, boolean enableProtection)
             throws InputOutputException {
         if (! this.exists(StorageType.FILE, path, enableProtection)) {
             throw new InputOutputException("Can not check whether the given path " + path.getPath() + " is a directory. The element does not exist in the DHT");
@@ -438,7 +439,15 @@ public abstract class ADhtStorageAdapter {
         return false;
     }
 
-    public Path getRootDir() {
+    synchronized protected String getChecksum(ADhtPathElement path, boolean enableProtection)
+            throws InputOutputException {
+
+        byte[] content = this.read(path, enableProtection);
+
+        return Hash.hash(HashingAlgorithm.MD5, content);
+    }
+
+    protected Path getRootDir() {
         return null;
     }
 }

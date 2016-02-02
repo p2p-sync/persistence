@@ -1,5 +1,7 @@
 package org.rmatil.sync.persistence.core.local;
 
+import org.rmatil.sync.commons.hashing.Hash;
+import org.rmatil.sync.commons.hashing.HashingAlgorithm;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.IPathElement;
 import org.rmatil.sync.persistence.api.IStorageAdapter;
@@ -251,6 +253,22 @@ public class LocalStorageAdapter implements IStorageAdapter {
         }
 
         return pathElements;
+    }
+
+    @Override
+    public String getChecksum(IPathElement path)
+            throws InputOutputException {
+        Path filePath = this.rootDir.resolve(path.getPath());
+
+        if (! this.isFile(path)) {
+            throw new InputOutputException("Failed to generate checksum. Only files can have a checksum");
+        }
+
+        try {
+            return Hash.hash(HashingAlgorithm.MD5, filePath.toFile());
+        } catch (IOException e) {
+            throw new InputOutputException(e);
+        }
     }
 
     @Override

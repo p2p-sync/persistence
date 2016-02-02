@@ -210,6 +210,17 @@ public class DhtStorageAdapter extends ADhtStorageAdapter implements IStorageAda
     }
 
     @Override
+    public String getChecksum(IPathElement path)
+            throws InputOutputException {
+
+        if (! (path instanceof DhtPathElement)) {
+            throw new InputOutputException("Could not use path element " + path.getClass().getName() + " for DHT Storage Adapter");
+        }
+
+        return super.getChecksum((DhtPathElement) path, true);
+    }
+
+    @Override
     public Path getRootDir() {
         return super.getRootDir();
     }

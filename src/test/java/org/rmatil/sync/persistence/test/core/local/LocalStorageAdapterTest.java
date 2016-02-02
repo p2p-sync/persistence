@@ -430,4 +430,17 @@ public class LocalStorageAdapterTest {
         localStorageAdapter.delete(path2);
         localStorageAdapter.delete(path);
     }
+
+    @Test
+    public void testGetChecksum()
+            throws InputOutputException, InterruptedException {
+        String content = "Feel the rythm feel the blues, it's bobsled time!";
+
+        IPathElement path = new LocalPathElement("someDir_dircontents_asdf");
+        localStorageAdapter.persist(StorageType.FILE, path, content.getBytes());
+
+        assertEquals("Checksum should be equal", "061875632d79f95204fa082ac64d4d75", localStorageAdapter.getChecksum(path));
+
+        localStorageAdapter.delete(path);
+    }
 }
