@@ -1,15 +1,20 @@
-package org.rmatil.sync.persistence.api;
+package org.rmatil.sync.persistence.core.dht.unsecured;
 
+import org.rmatil.sync.persistence.api.IFileMetaInfo;
+import org.rmatil.sync.persistence.api.StorageType;
+import org.rmatil.sync.persistence.core.dht.IDhtStorageAdapter;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
 /**
- * An adapter for various storage implementations.
- * This could include implementations for local storage, Dropbox, ...
+ * An interface for DHT storage adapters which
+ * do not provide domain protection
  */
-public interface IStorageAdapter<T extends IPathElement> {
+public interface IUnsecuredDhtStorageAdapter extends IDhtStorageAdapter {
 
     /**
-     * Persists the given bytes at the given path
+     * Persists the given bytes at the given path.
+     * <p>
+     * <p style="color:red">Note, that no domain protection is used.</p>
      *
      * @param type  The type of path which should be created
      * @param path  The path used to identify the data
@@ -17,13 +22,15 @@ public interface IStorageAdapter<T extends IPathElement> {
      *
      * @throws InputOutputException If an error occurred during persisting
      */
-    void persist(StorageType type, T path, byte[] bytes)
+    void persist(StorageType type, UnsecuredDhtPathElement path, byte[] bytes)
             throws InputOutputException;
 
     /**
      * Persists the given bytes of the given path at the given offset.
      * Note, that data is overwritten and not appended, if the offset is smaller
      * than the total size of the file!
+     * <p>
+     * <p style="color:red">Note, that no domain protection is used.</p>
      *
      * @param type   The type of path which should be created
      * @param path   The path used to identify the data
@@ -32,21 +39,26 @@ public interface IStorageAdapter<T extends IPathElement> {
      *
      * @throws InputOutputException If an error occurred during persisting
      */
-    void persist(StorageType type, T path, long offset, byte[] bytes)
+    void persist(StorageType type, UnsecuredDhtPathElement path, long offset, byte[] bytes)
             throws InputOutputException;
 
     /**
      * Deletes the content stored at path
+     * <p>
+     * <p style="color:red">Note, that no domain protection is used</p>
      *
      * @param path The path to remove
      *
      * @throws InputOutputException If an error occurred during deletion
      */
-    void delete(T path)
+    void delete(UnsecuredDhtPathElement path)
             throws InputOutputException;
+
 
     /**
      * Reads the contents stored at path
+     * <p>
+     * <p style="color:red">Note, that no domain protection is used.</p>
      *
      * @param path The path from which to read
      *
@@ -54,11 +66,13 @@ public interface IStorageAdapter<T extends IPathElement> {
      *
      * @throws InputOutputException If an error occurred during reading
      */
-    byte[] read(T path)
+    byte[] read(UnsecuredDhtPathElement path)
             throws InputOutputException;
 
     /**
      * Reads the contents stored at the given path and specified by the offset and length
+     * <p>
+     * <p style="color:red">Note, that no domain protection is used</p>
      *
      * @param path   The path from which to read
      * @param offset The offset where to start reading
@@ -68,11 +82,13 @@ public interface IStorageAdapter<T extends IPathElement> {
      *
      * @throws InputOutputException If an error occurred during reading
      */
-    byte[] read(T path, long offset, int length)
+    byte[] read(UnsecuredDhtPathElement path, long offset, int length)
             throws InputOutputException;
 
     /**
      * Moves the contents stored at oldPath to newPath.
+     * <p>
+     * <p style="color:red">Note, that no domain protection is used</p>
      *
      * @param storageType The storage type of the old and new path
      * @param oldPath     The old path
@@ -80,11 +96,13 @@ public interface IStorageAdapter<T extends IPathElement> {
      *
      * @throws InputOutputException If the target path already exists
      */
-    void move(StorageType storageType, T oldPath, T newPath)
+    void move(StorageType storageType, UnsecuredDhtPathElement oldPath, UnsecuredDhtPathElement newPath)
             throws InputOutputException;
 
     /**
      * Returns some meta information about the given path
+     * <p>
+     * <p style="color:red">Note, that no domain protection is used</p>
      *
      * @param path The path element of which to get the meta information
      *
@@ -92,11 +110,13 @@ public interface IStorageAdapter<T extends IPathElement> {
      *
      * @throws InputOutputException If an error occurred during fetching the meta information
      */
-    IFileMetaInfo getMetaInformation(T path)
+    IFileMetaInfo getMetaInformation(UnsecuredDhtPathElement path)
             throws InputOutputException;
 
     /**
      * Checks whether the given path already exists
+     * <p>
+     * <p style="color:red">Note, that no domain protection is used</p>
      *
      * @param storageType The storage type to check for
      * @param path        The path to check
@@ -105,11 +125,13 @@ public interface IStorageAdapter<T extends IPathElement> {
      *
      * @throws InputOutputException If an error occurred during checking for existence
      */
-    boolean exists(StorageType storageType, T path)
+    boolean exists(StorageType storageType, UnsecuredDhtPathElement path)
             throws InputOutputException;
 
     /**
      * Returns the checksum of a particular directory or file
+     * <p>
+     * <p style="color:red">Note, that no domain protection is used</p>
      *
      * @param path The path from which to get the checksum
      *
@@ -117,6 +139,6 @@ public interface IStorageAdapter<T extends IPathElement> {
      *
      * @throws InputOutputException If generating the checksum failed
      */
-    String getChecksum(T path)
+    String getChecksum(UnsecuredDhtPathElement path)
             throws InputOutputException;
 }

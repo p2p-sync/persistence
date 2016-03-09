@@ -1,12 +1,11 @@
-package org.rmatil.sync.persistence.core.local;
+package org.rmatil.sync.persistence.core.tree.local;
 
 import org.rmatil.sync.commons.hashing.Hash;
 import org.rmatil.sync.commons.hashing.HashingAlgorithm;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.FileMetaInfo;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
 import java.io.*;
@@ -17,10 +16,10 @@ import java.util.List;
 import static java.nio.file.StandardOpenOption.*;
 
 /**
- * A storage adapter which stores the data on local disk
+ * A storage adapter which stores the data on the local disk
  * relative to the specified root directory.
  */
-public class LocalStorageAdapter implements IStorageAdapter {
+public class LocalStorageAdapter implements ILocalStorageAdapter {
 
     protected Path rootDir;
 
@@ -32,13 +31,13 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public void persist(StorageType type, IPathElement path, byte[] bytes)
+    synchronized public void persist(StorageType type, TreePathElement path, byte[] bytes)
             throws InputOutputException {
         this.persist(type, path, 0, bytes);
     }
 
     @Override
-    synchronized public void persist(StorageType type, IPathElement path, long offset, byte[] bytes)
+    synchronized public void persist(StorageType type, TreePathElement path, long offset, byte[] bytes)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
@@ -53,14 +52,14 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public void delete(IPathElement path)
+    synchronized public void delete(TreePathElement path)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
         this.delete(filePath);
     }
 
     @Override
-    synchronized public byte[] read(IPathElement path)
+    synchronized public byte[] read(TreePathElement path)
             throws InputOutputException {
 
         Path filePath = rootDir.resolve(path.getPath());
@@ -73,7 +72,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public byte[] read(IPathElement path, long offset, int length)
+    synchronized public byte[] read(TreePathElement path, long offset, int length)
             throws InputOutputException {
 
         Path filePath = rootDir.resolve(path.getPath());
@@ -102,7 +101,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public void move(StorageType storageType, IPathElement oldPath, IPathElement newPath)
+    synchronized public void move(StorageType storageType, TreePathElement oldPath, TreePathElement newPath)
             throws InputOutputException {
 
         Path oldFilePath = rootDir.resolve(oldPath.getPath());
@@ -144,7 +143,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public IFileMetaInfo getMetaInformation(IPathElement path)
+    synchronized public IFileMetaInfo getMetaInformation(TreePathElement path)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
@@ -171,7 +170,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public boolean exists(StorageType storageType, IPathElement path) {
+    synchronized public boolean exists(StorageType storageType, TreePathElement path) {
         Path filePath = rootDir.resolve(path.getPath());
 
         if (! filePath.toFile().exists()) {
@@ -189,7 +188,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public boolean isFile(IPathElement path)
+    synchronized public boolean isFile(TreePathElement path)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
@@ -201,7 +200,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    synchronized public boolean isDir(IPathElement path)
+    synchronized public boolean isDir(TreePathElement path)
             throws InputOutputException {
         Path filePath = rootDir.resolve(path.getPath());
 
@@ -213,13 +212,13 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public List<IPathElement> getDirectoryContents(IPathElement directory)
+    public List<TreePathElement> getDirectoryContents(TreePathElement directory)
             throws InputOutputException {
 
         if ("/".equals(directory.getPath())) {
             // prevent resolving to actual root
             // use root of this root dir instead
-            directory = new LocalPathElement("");
+            directory = new TreePathElement("");
         }
 
         Path filePath = rootDir.resolve(directory.getPath());
@@ -241,7 +240,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
             throw new InputOutputException("Can not convert to canonical path. Message: " + e.getMessage());
         }
 
-        List<IPathElement> pathElements = new ArrayList<>();
+        List<TreePathElement> pathElements = new ArrayList<>();
         File[] files = canonicalFile.listFiles();
 
         if (null == files) {
@@ -249,12 +248,12 @@ public class LocalStorageAdapter implements IStorageAdapter {
         }
 
         for (File file : files) {
-            pathElements.add(new LocalPathElement(canonicalRootPath.relativize(file.toPath()).toString()));
+            pathElements.add(new TreePathElement(canonicalRootPath.relativize(file.toPath()).toString()));
 
             // add all subdirs too
             if (file.isDirectory()) {
                 pathElements.addAll(this.getDirectoryContents(
-                        new LocalPathElement(canonicalRootPath.relativize(file.toPath()).toString())
+                        new TreePathElement(canonicalRootPath.relativize(file.toPath()).toString())
                 ));
             }
         }
@@ -263,7 +262,7 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public String getChecksum(IPathElement path)
+    public String getChecksum(TreePathElement path)
             throws InputOutputException {
         Path filePath = this.rootDir.resolve(path.getPath());
 
@@ -279,8 +278,8 @@ public class LocalStorageAdapter implements IStorageAdapter {
     }
 
     @Override
-    public Path getRootDir() {
-        return this.rootDir;
+    public TreePathElement getRootDir() {
+        return new TreePathElement(this.rootDir.toString());
     }
 
     /**

@@ -1,12 +1,13 @@
-package org.rmatil.sync.persistence.core.dht;
+package org.rmatil.sync.persistence.core.dht.cache;
 
 import org.rmatil.sync.commons.collection.Pair;
-import org.rmatil.sync.persistence.core.dht.base.ADhtPathElement;
+import org.rmatil.sync.persistence.core.dht.DhtPathElement;
+import org.rmatil.sync.persistence.core.dht.secured.SecuredDhtStorageAdapter;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A cache layer for the {@link DhtStorageAdapter}.
+ * A cache layer for the {@link SecuredDhtStorageAdapter}.
  */
 public class DhtCache implements IDhtCache {
 
@@ -29,12 +30,12 @@ public class DhtCache implements IDhtCache {
     }
 
     @Override
-    public synchronized void put(ADhtPathElement pathElement, byte[] bytes) {
+    public synchronized void put(DhtPathElement pathElement, byte[] bytes) {
         this.cache.put(pathElement.getPath(), new Pair<>(System.currentTimeMillis() + timeToLive, bytes));
     }
 
     @Override
-    public synchronized byte[] get(ADhtPathElement pathElement) {
+    public synchronized byte[] get(DhtPathElement pathElement) {
         long now = System.currentTimeMillis();
 
         Pair<Long, byte[]> pair = this.cache.get(pathElement.getPath());
@@ -47,7 +48,7 @@ public class DhtCache implements IDhtCache {
     }
 
     @Override
-    public synchronized void clear(ADhtPathElement pathElement) {
+    public synchronized void clear(DhtPathElement pathElement) {
         this.cache.remove(pathElement.getPath());
     }
 

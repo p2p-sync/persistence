@@ -12,12 +12,12 @@ import net.tomp2p.peers.Number160;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
-import org.rmatil.sync.persistence.api.IPathElement;
-import org.rmatil.sync.persistence.api.IStorageAdapter;
 import org.rmatil.sync.persistence.api.StorageType;
-import org.rmatil.sync.persistence.core.dht.DhtPathElement;
-import org.rmatil.sync.persistence.core.dht.DhtStorageAdapter;
-import org.rmatil.sync.persistence.core.local.LocalPathElement;
+import org.rmatil.sync.persistence.core.dht.IDhtStorageAdapter;
+import org.rmatil.sync.persistence.core.dht.secured.ISecuredDhtStorageAdapter;
+import org.rmatil.sync.persistence.core.dht.secured.SecuredDhtPathElement;
+import org.rmatil.sync.persistence.core.dht.secured.SecuredDhtStorageAdapter;
+import org.rmatil.sync.persistence.core.dht.unsecured.UnsecuredDhtPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 import org.rmatil.sync.persistence.test.config.Config;
 import org.slf4j.Logger;
@@ -32,9 +32,9 @@ import java.security.NoSuchAlgorithmException;
 
 import static org.junit.Assert.*;
 
-public class DhtStorageAdapterTest {
+public class SecuredDhtStorageAdapterTest {
 
-    protected final static Logger logger = LoggerFactory.getLogger(DhtStorageAdapterTest.class);
+    protected final static Logger logger = LoggerFactory.getLogger(SecuredDhtStorageAdapterTest.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -42,22 +42,18 @@ public class DhtStorageAdapterTest {
     protected static PeerDHT peer1;
     protected static PeerDHT peer2;
 
-    protected static IStorageAdapter dhtStorageAdapter1;
-    protected static IStorageAdapter dhtStorageAdapter2;
+    protected static ISecuredDhtStorageAdapter dhtStorageAdapter1;
+    protected static IDhtStorageAdapter        dhtStorageAdapter2;
 
     protected static KeyPair keyPair1;
     protected static KeyPair keyPair2;
 
-    protected static IPathElement path1;
+    protected static SecuredDhtPathElement path1;
     protected static byte[] data = "Some content".getBytes();
-
-    protected static IPathElement localPathElement;
 
     @BeforeClass
     public static void setup()
             throws IOException, NoSuchAlgorithmException {
-
-        localPathElement = new LocalPathElement("a/b/c");
 
         Bindings b = new Bindings().addProtocol(StandardProtocolFamily.INET).addAddress(InetAddress.getByName(Config.DEFAULT.getTestIpV4Address()));
 
@@ -99,10 +95,10 @@ public class DhtStorageAdapterTest {
             logger.error("Failed to bootstrap peers. Reason: " + futureBootstrap.failedReason());
         }
 
-        path1 = new DhtPathElement("location key", "content key", "domain-key");
+        path1 = new SecuredDhtPathElement("location key", "content key", "domain-key");
 
-        dhtStorageAdapter1 = new DhtStorageAdapter(peer1);
-        dhtStorageAdapter2 = new DhtStorageAdapter(peer2, 0);
+        dhtStorageAdapter1 = new SecuredDhtStorageAdapter(peer1);
+        dhtStorageAdapter2 = new SecuredDhtStorageAdapter(peer2, 0);
 
     }
 
@@ -116,6 +112,23 @@ public class DhtStorageAdapterTest {
     public void after()
             throws InputOutputException {
         dhtStorageAdapter1.delete(path1);
+    }
+
+    @Test
+    public void testSecureDhtPathElement() {
+        SecuredDhtPathElement securedDhtPathElement = new SecuredDhtPathElement(
+                "location",
+                "content",
+                "domain"
+        );
+
+        assertEquals("location", securedDhtPathElement.getRawLocationKey());
+        assertEquals("content", securedDhtPathElement.getRawContentKey());
+        assertEquals("domain", securedDhtPathElement.getRawDomainKey());
+
+        UnsecuredDhtPathElement unsecuredDhtPathElement = securedDhtPathElement.toUnsecuredDhtPathElement();
+        assertEquals("location", unsecuredDhtPathElement.getRawLocationKey());
+        assertEquals("content", unsecuredDhtPathElement.getRawContentKey());
     }
 
     @Test
@@ -174,7 +187,7 @@ public class DhtStorageAdapterTest {
             throws InputOutputException {
         thrown.expect(InputOutputException.class);
 
-        IPathElement path = new DhtPathElement("username1", "content key 2", "domain key 2");
+        SecuredDhtPathElement path = new SecuredDhtPathElement("username1", "content key 2", "domain key 2");
 
         dhtStorageAdapter1.persist(StorageType.DIRECTORY, path, null);
     }
@@ -183,37 +196,7 @@ public class DhtStorageAdapterTest {
     public void testReadOffset()
             throws InputOutputException {
         String content = "Feel the rhythm feel the blues, it's bobsled time";
-        IPathElement path = new DhtPathElement(
-                "location key",
-                "content key",
-                "domain key"
-        );
-
-        // persist path under protection of the public key of peer1
-        dhtStorageAdapter1.persist(StorageType.FILE, path, content.getBytes());
-
-        // this should contain the whole string
-        byte[] readContent = dhtStorageAdapter1.read(path, 0, 49);
-        assertArrayEquals("Content is not equal", content.getBytes(), readContent);
-
-        byte[] readContent2 = dhtStorageAdapter1.read(path, 10, 39);
-        byte[] expected = new byte[39];
-        System.arraycopy(content.getBytes(), 10, expected, 0, 39);
-        assertArrayEquals("Part of the content is not the same", expected, readContent2);
-
-        // we expect the storage adapter to trim the byte array
-        byte[] readContent3 = dhtStorageAdapter1.read(path, 10, 50);
-        assertArrayEquals("Part of the content is not the same", expected, readContent3);
-    }
-
-    @Test
-    public void testMove()
-            throws InputOutputException {
-        dhtStorageAdapter1.persist(StorageType.FILE, path1, new byte[0]);
-
-        assertTrue("path1 does not exist", dhtStorageAdapter1.exists(StorageType.FILE, path1));
-
-        IPathElement newPath = new DhtPathElement(
+        SecuredDhtPathElement newPath = new SecuredDhtPathElement(
                 "location key 2",
                 "content key 2",
                 "domain key 2"
@@ -233,7 +216,7 @@ public class DhtStorageAdapterTest {
         dhtStorageAdapter1.persist(StorageType.FILE, path1, new byte[0]);
 
         assertTrue("path1 does not exist", dhtStorageAdapter1.exists(StorageType.FILE, path1));
-        IPathElement newPath = new DhtPathElement(
+        SecuredDhtPathElement newPath = new SecuredDhtPathElement(
                 "location key 2",
                 "content key 2",
                 "domain key 2"
@@ -254,7 +237,7 @@ public class DhtStorageAdapterTest {
     public void testGetMetaInformation()
             throws InputOutputException {
         String content = "Feel the rhythm feel the blues, it's bobsled time";
-        IPathElement path = new DhtPathElement(
+        SecuredDhtPathElement path = new SecuredDhtPathElement(
                 "location key",
                 "content key",
                 "domain key"
@@ -272,7 +255,7 @@ public class DhtStorageAdapterTest {
         assertTrue("File should be a file", fileMetaInfo.isFile());
 
         thrown.expect(InputOutputException.class);
-        IPathElement notExistingPath = new DhtPathElement(
+        SecuredDhtPathElement notExistingPath = new SecuredDhtPathElement(
                 "winter",
                 "summer",
                 "spring"
@@ -340,59 +323,6 @@ public class DhtStorageAdapterTest {
         dhtStorageAdapter1.exists(StorageType.DIRECTORY, path1);
     }
 
-    @Test
-    public void testRootDir() {
-        assertNull("RootDir should be null", dhtStorageAdapter1.getRootDir());
-        assertNull("RootDir should be null", dhtStorageAdapter2.getRootDir());
-    }
-
-    @Test
-    public void testLocalPathElement1()
-            throws InputOutputException {
-
-        IPathElement pathElement = new LocalPathElement("somePath");
-
-        thrown.expect(InputOutputException.class);
-        dhtStorageAdapter1.persist(StorageType.FILE, pathElement, new byte[0]);
-
-        dhtStorageAdapter1.delete(pathElement);
-
-        dhtStorageAdapter1.read(pathElement);
-
-        dhtStorageAdapter1.exists(StorageType.FILE, pathElement);
-    }
-
-    @Test
-    public void testLocalPathElement2()
-            throws InputOutputException {
-
-        IPathElement pathElement = new LocalPathElement("somePath");
-
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.delete(pathElement);
-    }
-
-    @Test
-    public void testLocalPathElement3()
-            throws InputOutputException {
-
-        IPathElement pathElement = new LocalPathElement("somePath");
-
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.read(pathElement);
-    }
-
-    @Test
-    public void testLocalPathElement4()
-            throws InputOutputException {
-
-        IPathElement pathElement = new LocalPathElement("somePath");
-
-        thrown.expect(InputOutputException.class);
-        dhtStorageAdapter1.exists(StorageType.FILE, pathElement);
-    }
 
     @Test
     public void testIllegalArgumentException()
@@ -400,59 +330,7 @@ public class DhtStorageAdapterTest {
         thrown.expect(IllegalArgumentException.class);
 
         PeerDHT tmpPeer = new PeerBuilderDHT(new PeerBuilder(Number160.createHash(50)).start()).start();
-        DhtStorageAdapter tmpAdapter = new DhtStorageAdapter(tmpPeer);
-    }
-
-    @Test
-    public void testIsFile()
-            throws InputOutputException, InterruptedException {
-        // persist path under protection of the public key of peer1
-        dhtStorageAdapter1.persist(StorageType.FILE, path1, data);
-
-        // wait to for propagating data among peers
-        Thread.sleep(1000L);
-
-        byte[] receivedContent = dhtStorageAdapter1.read(path1);
-        assertArrayEquals("Content is not the same", data, receivedContent);
-
-        // should be the same since path has the same protection key
-        byte[] receivedContent2 = dhtStorageAdapter2.read(path1);
-        assertArrayEquals("Content should not be empty", data, receivedContent2);
-
-        assertTrue("File should exist", dhtStorageAdapter1.isFile(path1));
-        assertFalse("File should not be a directory", dhtStorageAdapter1.isDir(path1));
-
-        assertTrue("File should exist", dhtStorageAdapter2.isFile(path1));
-        assertFalse("File should not be a directory", dhtStorageAdapter2.isDir(path1));
-
-        thrown.expect(InputOutputException.class);
-        dhtStorageAdapter1.isFile(new DhtPathElement("blib", "blob", "blub"));
-    }
-
-    @Test
-    public void testIsDir()
-            throws InputOutputException, InterruptedException {
-        // persist path under protection of the public key of peer1
-        dhtStorageAdapter1.persist(StorageType.FILE, path1, data);
-
-        // wait to for propagating data among peers
-        Thread.sleep(1000L);
-
-        byte[] receivedContent = dhtStorageAdapter1.read(path1);
-        assertArrayEquals("Content is not the same", data, receivedContent);
-
-        // should be the same since path has the same protection key
-        byte[] receivedContent2 = dhtStorageAdapter2.read(path1);
-        assertArrayEquals("Content should not be empty", data, receivedContent2);
-
-        assertFalse("File should not be a dir", dhtStorageAdapter1.isDir(path1));
-        assertTrue("Dir should not be a file", dhtStorageAdapter1.isFile(path1));
-
-        assertFalse("File should not be a dir", dhtStorageAdapter2.isDir(path1));
-        assertTrue("Dir should not be a file", dhtStorageAdapter2.isFile(path1));
-
-        thrown.expect(InputOutputException.class);
-        dhtStorageAdapter1.isFile(new DhtPathElement("blib", "blob", "blub"));
+        SecuredDhtStorageAdapter tmpAdapter = new SecuredDhtStorageAdapter(tmpPeer);
     }
 
     @Test
@@ -465,116 +343,5 @@ public class DhtStorageAdapterTest {
         Thread.sleep(1000L);
 
         assertEquals("Checksum should be equal", "061875632d79f95204fa082ac64d4d75", dhtStorageAdapter1.getChecksum(path1));
-    }
-
-    @Test
-    public void testPersistException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.persist(StorageType.DIRECTORY, localPathElement, null);
-    }
-
-    @Test
-    public void testPersistException2()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.persist(StorageType.FILE, localPathElement, 0, new byte[0]);
-    }
-
-    @Test
-    public void testDeleteException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.delete(localPathElement);
-    }
-
-    @Test
-    public void testReadException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.persist(StorageType.FILE, localPathElement, null);
-    }
-
-    @Test
-    public void testReadException2()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.read(localPathElement, 0L, 1);
-    }
-
-    @Test
-    public void testMoveException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.move(StorageType.FILE, localPathElement, localPathElement);
-    }
-
-    @Test
-    public void testGetMetainformationException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.getMetaInformation(localPathElement);
-    }
-
-    @Test
-    public void testExistsException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.exists(StorageType.FILE, localPathElement);
-    }
-
-    @Test
-    public void testIsFileException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.isFile(localPathElement);
-    }
-
-    @Test
-    public void testIsDirException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.isDir(localPathElement);
-    }
-
-    @Test
-    public void testGetDirectoryContentsException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.getDirectoryContents(localPathElement);
-    }
-
-    @Test
-    public void testGetDirectoryContentsException2()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.getDirectoryContents(path1);
-    }
-
-    @Test
-    public void testGetChecksumException()
-            throws InputOutputException {
-        thrown.expect(InputOutputException.class);
-
-        dhtStorageAdapter1.getChecksum(localPathElement);
-    }
-
-    @Test
-    public void testGetRootDir()
-            throws InputOutputException {
-
-        assertNull("RootDir should be null", dhtStorageAdapter1.getRootDir());
     }
 }

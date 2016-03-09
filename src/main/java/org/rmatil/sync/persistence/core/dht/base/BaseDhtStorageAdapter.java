@@ -1,26 +1,28 @@
 package org.rmatil.sync.persistence.core.dht.base;
 
 import net.tomp2p.dht.*;
+import net.tomp2p.p2p.JobScheduler;
 import net.tomp2p.storage.Data;
 import org.rmatil.sync.commons.hashing.Hash;
 import org.rmatil.sync.commons.hashing.HashingAlgorithm;
 import org.rmatil.sync.persistence.api.IFileMetaInfo;
 import org.rmatil.sync.persistence.api.StorageType;
 import org.rmatil.sync.persistence.core.FileMetaInfo;
-import org.rmatil.sync.persistence.core.dht.DhtCache;
 import org.rmatil.sync.persistence.core.dht.DhtPathElement;
+import org.rmatil.sync.persistence.core.dht.cache.DhtCache;
 import org.rmatil.sync.persistence.core.dht.listener.DhtDeleteListener;
 import org.rmatil.sync.persistence.core.dht.listener.DhtGetListener;
 import org.rmatil.sync.persistence.core.dht.listener.DhtPutListener;
+import org.rmatil.sync.persistence.core.dht.secured.SecuredDhtPathElement;
 import org.rmatil.sync.persistence.exceptions.InputOutputException;
 
-import java.nio.file.Path;
-
-public abstract class ADhtStorageAdapter {
+public abstract class BaseDhtStorageAdapter {
 
     protected final PeerDHT dht;
 
     protected final DhtCache cache;
+
+    protected final JobScheduler jobScheduler;
 
     /**
      * Represents an abstract storage adapter for the DHT. To protect
@@ -48,7 +50,7 @@ public abstract class ADhtStorageAdapter {
      *
      * @param dht A PeerDHT bootstrapped with domain protection
      */
-    protected ADhtStorageAdapter(PeerDHT dht) {
+    protected BaseDhtStorageAdapter(PeerDHT dht) {
         this(dht, 0);
     }
 
@@ -77,12 +79,13 @@ public abstract class ADhtStorageAdapter {
      *
      * @param dht A PeerDHT bootstrapped with domain protection
      */
-    protected ADhtStorageAdapter(PeerDHT dht, long timeToLive) {
+    protected BaseDhtStorageAdapter(PeerDHT dht, long timeToLive) {
         this.dht = dht;
         this.cache = new DhtCache(timeToLive);
+        this.jobScheduler = new JobScheduler(this.dht.peer());
     }
 
-    synchronized protected void persist(StorageType type, ADhtPathElement path, byte[] bytes, boolean enableProtection)
+    public synchronized void persist(StorageType type, DhtPathElement path, byte[] bytes)
             throws InputOutputException {
 
         if (StorageType.FILE != type) {
@@ -98,10 +101,10 @@ public abstract class ADhtStorageAdapter {
                 .data(path.getContentKey(), data);
 
         // enable domain protection only if required
-        if (enableProtection) {
+        if (path instanceof SecuredDhtPathElement) {
             putBuilder
                     .protectDomain()
-                    .domainKey(((DhtPathElement) path).getDomainKey());
+                    .domainKey(((SecuredDhtPathElement) path).getDomainKey());
         }
 
         FuturePut futurePut = putBuilder.start();
@@ -118,14 +121,14 @@ public abstract class ADhtStorageAdapter {
         }
     }
 
-    synchronized protected void persist(StorageType type, ADhtPathElement path, long offset, byte[] bytes, boolean enabledProtection)
+    public synchronized void persist(StorageType type, DhtPathElement path, long offset, byte[] bytes)
             throws InputOutputException {
 
         if (StorageType.FILE != type) {
             throw new InputOutputException("Only files are allowed to be stored in the DHT");
         }
 
-        byte[] existingBytes = this.read(path, enabledProtection);
+        byte[] existingBytes = this.read(path);
 
         // TODO: fix writing with "long" offset
         int intOffset = (int) offset;
@@ -163,17 +166,30 @@ public abstract class ADhtStorageAdapter {
                 .data(path.getContentKey(), data);
 
         // enable protection only on request
-        if (enabledProtection) {
+        if (path instanceof SecuredDhtPathElement) {
             putBuilder
                     .protectDomain()
-                    .domainKey(((DhtPathElement) path).getDomainKey());
+                    .domainKey(((SecuredDhtPathElement) path).getDomainKey());
         }
 
         FuturePut futurePut = putBuilder.start();
 
-        futurePut.addListener(
-                new DhtPutListener(this.dht)
-        );
+//        Shutdown shutdown = this.jobScheduler.start(
+//                putBuilder,
+//                30000,
+//                - 1,
+//                future -> future.addListener(
+//                        new DhtPutListener(BaseDhtStorageAdapter.this.dht)
+//                )
+//        );
+//
+//
+//        // -> shutdown only stops the putbuilder which repeats
+//        // inserting the same value over and over again
+//        // -> stop & restart this when deleting the value
+//        // -> stop & restart this when updating the value
+//        shutdown.shutdown();
+
 
         try {
             futurePut.await();
@@ -183,7 +199,8 @@ public abstract class ADhtStorageAdapter {
         }
     }
 
-    synchronized protected void delete(ADhtPathElement path, boolean enableProtection)
+
+    public synchronized void delete(DhtPathElement path)
             throws InputOutputException {
 
         this.cache.clear(path);
@@ -193,10 +210,10 @@ public abstract class ADhtStorageAdapter {
                 .contentKey(path.getContentKey());
 
         // enable protection only on request
-        if (enableProtection) {
+        if (path instanceof SecuredDhtPathElement) {
             removeBuilder
                     .protectDomain()
-                    .domainKey(((DhtPathElement) path).getDomainKey());
+                    .domainKey(((SecuredDhtPathElement) path).getDomainKey());
         }
 
         FutureRemove futureRemove = removeBuilder.start();
@@ -214,7 +231,7 @@ public abstract class ADhtStorageAdapter {
 
     }
 
-    synchronized protected byte[] read(ADhtPathElement path, boolean enableProtection)
+    public synchronized byte[] read(DhtPathElement path)
             throws InputOutputException {
 
         byte[] data = this.cache.get(path);
@@ -228,9 +245,9 @@ public abstract class ADhtStorageAdapter {
                 .get(path.getLocationKey())
                 .contentKey(path.getContentKey());
 
-        if (enableProtection) {
+        if (path instanceof SecuredDhtPathElement) {
             getBuilder
-                    .domainKey(((DhtPathElement) path).getDomainKey());
+                    .domainKey(((SecuredDhtPathElement) path).getDomainKey());
         }
 
         FutureGet futureGet = getBuilder.start();
@@ -253,7 +270,7 @@ public abstract class ADhtStorageAdapter {
         return futureGet.data().toBytes();
     }
 
-    synchronized protected byte[] read(ADhtPathElement path, long offset, int length, boolean enableProtection)
+    public synchronized byte[] read(DhtPathElement path, long offset, int length)
             throws InputOutputException {
 
         byte[] cachedData = this.cache.get(path);
@@ -266,9 +283,9 @@ public abstract class ADhtStorageAdapter {
                     .get(path.getLocationKey())
                     .contentKey(path.getContentKey());
 
-            if (enableProtection) {
+            if (path instanceof SecuredDhtPathElement) {
                 getBuilder
-                        .domainKey(((DhtPathElement) path).getDomainKey());
+                        .domainKey(((SecuredDhtPathElement) path).getDomainKey());
             }
 
             FutureGet futureGet = getBuilder.start();
@@ -323,26 +340,26 @@ public abstract class ADhtStorageAdapter {
      * <p>
      * {@inheritDoc}
      */
-    synchronized protected void move(StorageType storageType, ADhtPathElement oldPath, ADhtPathElement newPath, boolean enableProtection)
+    public synchronized void move(StorageType storageType, DhtPathElement oldPath, DhtPathElement newPath)
             throws InputOutputException {
 
-        byte[] contents = this.read(oldPath, enableProtection);
+        byte[] contents = this.read(oldPath);
 
-        if (this.exists(storageType, newPath, enableProtection)) {
+        if (this.exists(storageType, newPath)) {
             throw new InputOutputException("Target path " + newPath.getPath() + " already exists");
         }
 
         // first try to write to new path
         this.cache.put(newPath, contents);
-        this.persist(StorageType.FILE, newPath, contents, enableProtection);
+        this.persist(StorageType.FILE, newPath, contents);
         this.cache.clear(oldPath);
-        this.delete(oldPath, enableProtection);
+        this.delete(oldPath);
     }
 
-    synchronized protected IFileMetaInfo getMetaInformation(ADhtPathElement path, boolean enableProtection)
+    public synchronized IFileMetaInfo getMetaInformation(DhtPathElement path)
             throws InputOutputException {
 
-        if (! this.exists(StorageType.FILE, path, enableProtection)) {
+        if (! this.exists(StorageType.FILE, path)) {
             throw new InputOutputException("Could not get meta information for " + path.getPath() + ". No such file or directory");
         }
 
@@ -357,8 +374,8 @@ public abstract class ADhtStorageAdapter {
                 .contentKey(path.getContentKey());
 
         // use protection only on request
-        if (enableProtection) {
-            getBuilder.domainKey(((DhtPathElement) path).getDomainKey());
+        if (path instanceof SecuredDhtPathElement) {
+            getBuilder.domainKey(((SecuredDhtPathElement) path).getDomainKey());
         }
 
         FutureGet futureGet = getBuilder.start();
@@ -381,7 +398,7 @@ public abstract class ADhtStorageAdapter {
         return new FileMetaInfo(futureGet.data().toBytes().length, true, "");
     }
 
-    synchronized protected boolean exists(StorageType storageType, ADhtPathElement path, boolean enableProtection)
+    public synchronized boolean exists(StorageType storageType, DhtPathElement path)
             throws InputOutputException {
 
         if (StorageType.FILE != storageType) {
@@ -399,8 +416,8 @@ public abstract class ADhtStorageAdapter {
                 .contentKey(path.getContentKey());
 
         // use protection only on request
-        if (enableProtection) {
-            getBuilder.domainKey(((DhtPathElement) path).getDomainKey());
+        if (path instanceof SecuredDhtPathElement) {
+            getBuilder.domainKey(((SecuredDhtPathElement) path).getDomainKey());
         }
 
         FutureGet futureGet = getBuilder.start();
@@ -419,35 +436,11 @@ public abstract class ADhtStorageAdapter {
         return null != futureGet.data();
     }
 
-    synchronized protected boolean isFile(ADhtPathElement path, boolean enableProtection)
-            throws InputOutputException {
-        if (! this.exists(StorageType.FILE, path, enableProtection)) {
-            throw new InputOutputException("Can not check whether the given path " + path.getPath() + " is a file. The element does not exist in the DHT");
-        }
-
-        // we only have "files" in the DHT
-        return true;
-    }
-
-    synchronized protected boolean isDir(ADhtPathElement path, boolean enableProtection)
-            throws InputOutputException {
-        if (! this.exists(StorageType.FILE, path, enableProtection)) {
-            throw new InputOutputException("Can not check whether the given path " + path.getPath() + " is a directory. The element does not exist in the DHT");
-        }
-
-        // we only have "files" in the DHT
-        return false;
-    }
-
-    synchronized protected String getChecksum(ADhtPathElement path, boolean enableProtection)
+    public synchronized String getChecksum(DhtPathElement path)
             throws InputOutputException {
 
-        byte[] content = this.read(path, enableProtection);
+        byte[] content = this.read(path);
 
         return Hash.hash(HashingAlgorithm.MD5, content);
-    }
-
-    protected Path getRootDir() {
-        return null;
     }
 }
