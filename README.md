@@ -30,7 +30,7 @@ Use Maven to add this component as your dependency:
 
 # Overview
 
-This component provides an abstraction for manipulating multiple storage systems. Not only storage adapters to filesystems using a tree-like approach to store data are be provided but also adapters to persist data in a distributed hash table (DHT).
+This component provides an abstraction for manipulating multiple storage systems. Not only storage adapters to filesystems using a tree-like approach to store data are provided but also adapters to persist data in a distributed hash table (DHT).
 
 # Storage Adapters
 A storage adapter abstracts the access to the underlying file system strucutre resp. implementation.
