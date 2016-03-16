@@ -39,11 +39,11 @@ an implementation of [`IPathElement`](https://github.com/p2p-sync/persistence/bl
 
 **Currently Specified Adapters**
 
-* [Tree Storage Adapter](https://github.com/p2p-sync/persistence#treestorageadapter)
-  * [Local Storage Adapter](https://github.com/p2p-sync/persistence#localstorageadapter)
-* [Dht Storage Adapter](https://github.com/p2p-sync/persistence#dhtstorageadapter)
-  * [Unsecured Dht Storage Adapter](https://github.com/p2p-sync/persistence#unsecureddhtstorageadapter)
-  * [Secured Dht Storage Adapter](https://github.com/p2p-sync/persistence#secureddhtstorageadapter)
+* [Tree Storage Adapter](https://github.com/p2p-sync/persistence#tree-storage-adapter)
+  * [Local Storage Adapter](https://github.com/p2p-sync/persistence#local-storage-adapter)
+* [Dht Storage Adapter](https://github.com/p2p-sync/persistence#dht-storage-adapter)
+  * [Unsecured Dht Storage Adapter](https://github.com/p2p-sync/persistence#unsecured-dht-storage-adapter)
+  * [Secured Dht Storage Adapter](https://github.com/p2p-sync/persistence#secured-dht-storage-adapter)
 
 
 ## Tree Storage Adapter
