@@ -30,15 +30,68 @@ Use Maven to add this component as your dependency:
 
 # Overview
 
-This component should provide an abstraction for manipulating multiple storage systems. Not only storage adapters to the 
-local filesystem should be provided but also adapters to stored data in a distributed hash table (DHT) as well as third party services. 
+This component provides an abstraction for manipulating multiple storage systems. Not only storage adapters to filesystems using a tree-like approach to store data are provided but also adapters to persist data in a distributed hash table (DHT).
 
-# StorageAdapters
-To make adapters work over multiple systems, it is required to abstract the concept of files and directories (e.g. in a flat storage system like a DHT). Therefore, the enum [StorageType](https://github.com/p2p-sync/persistence/blob/master/src/main/java/org/rmatil/sync/persistence/api/StorageType.java) specifies which type an element represents. 
-Furthermore, a particular implementation of an  [IPathElement](https://github.com/p2p-sync/persistence/blob/master/src/main/java/org/rmatil/sync/persistence/api/IPathElement.java) serves as identifier of a blob of data and can be different for each adapter. 
+# Storage Adapters
+A storage adapter abstracts the access to the underlying file system strucutre resp. implementation.
+Its specification is provided in [`IStorageAdapter`](https://github.com/p2p-sync/persistence/blob/master/src/main/java/org/rmatil/sync/persistence/api/IStorageAdapter.java). Due to these different structures, each interface specifying a type of a storage adapter must also provide
+an implementation of [`IPathElement`](https://github.com/p2p-sync/persistence/blob/master/src/main/java/org/rmatil/sync/persistence/api/IPathElement.java), defining how values can be retrieved.
 
-## LocalStorageAdapters
-Access, write and remove files and directories within the specified root path on the local filesystem.
+**Currently Specified Adapters**
+
+* [Tree Storage Adapter](https://github.com/p2p-sync/persistence#tree-storage-adapter)
+  * [Local Storage Adapter](https://github.com/p2p-sync/persistence#local-storage-adapter)
+* [Dht Storage Adapter](https://github.com/p2p-sync/persistence#dht-storage-adapter)
+  * [Unsecured Dht Storage Adapter](https://github.com/p2p-sync/persistence#unsecured-dht-storage-adapter)
+  * [Secured Dht Storage Adapter](https://github.com/p2p-sync/persistence#secured-dht-storage-adapter)
+
+
+## Tree Storage Adapter
+An `ITreeStorageAdapter` extends from the general `IStorageAdapter` and uses the concept of files and directories (implementations could also resolve sym-/hardlinks) to organise persisted data. It is specified in [`ITreeStorageAdapter`](https://github.com/p2p-sync/persistence/blob/master/src/main/java/org/rmatil/sync/persistence/core/tree/ITreeStorageAdapter.java). Additionally to the basic CRUD operations (Create, Read, Update, Delete), implementations of this interface must also provide methods to check whether a particular element is a file resp. a directory and accessor to retrieve contents of a directory.
+
+### Local Storage Adapter
+Currently, one implementation of an `ITreeStorageAdapter` is integrated, specified in [`ILocalStorageAdapter`](https://github.com/p2p-sync/persistence/blob/master/src/main/java/org/rmatil/sync/persistence/core/tree/local/ILocalStorageAdapter.java). It provides the access to a local file system, using Java's `io` functionality.
+Such an adapter is always relative to a particular root directory, path elements are then resolved to this root before
+their contents are fetched from the file system
+
+## Dht Storage Adapter
+Besides the tree-like storage adapters, an interface for accessing data in distributed hash tables is specified in [`IDhtStorageAdapter`](https://github.com/p2p-sync/persistence/blob/master/src/main/java/org/rmatil/sync/persistence/core/dht/IDhtStorageAdapter.java)
+
+### Unsecured Dht Storage Adapter
+The `IUnsecuredDhtStorageAdapter` defines access to data stored in the `Distributed Hash Table` using only a `LocationKey` and a `ContentKey`. Data maintained by such an adapter is not protected against overwrites from other nodes at all.
+Its interface is specified in [`IUnsecuredDhtStorageAdapter`](https://github.com/p2p-sync/persistence/blob/master/src/main/java/org/rmatil/sync/persistence/core/dht/unsecured/IUnsecuredDhtStorageAdapter.java)
+
+### Secured Dht Storage Adapter
+In contrast, an `ISecuredDhtStorageAdapter` is also responsible to provide a protection mechanism of its stored values by
+using a third dimension besides the `LocationKey` and the `ContentKey`: the `DomainKey`. Values stored by using such 
+an adapter are protected against overwrites from other clients by signing messages. Its interface can be found in [`ISecuredDhtStorageAdapter`](https://github.com/p2p-sync/persistence/blob/master/src/main/java/org/rmatil/sync/persistence/core/dht/secured/ISecuredDhtStorageAdapter.java)
+
+
+## Example
+
+```java
+
+import org.rmatil.sync.persistence.core.tree.ITreeStorageAdapter;
+import org.rmatil.sync.persistence.core.tree.TreePathElement;
+import org.rmatil.sync.persistence.core.tree.local.LocalStorageAdapter;
+
+import java.nio.file.Paths;
+import java.util.List;
+
+// ...
+
+  ITreeStorageAdapter treeStorageAdapter = new LocalStorageAdapter(
+    Paths.get("path/to/root/dir")
+  );
+
+  // get the directory contents at path/to/root/dir/directory
+  TreePathElement directoryElement = new TreePathElement("directory");
+  List<TreePathElement> directoryContents = treeStorageAdapter.getDirectoryContents(directoryElement);
+  
+// ...
+
+
+```
 
 
 # License
