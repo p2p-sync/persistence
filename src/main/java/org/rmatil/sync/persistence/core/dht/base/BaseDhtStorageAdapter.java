@@ -130,7 +130,10 @@ public abstract class BaseDhtStorageAdapter {
 
         byte[] existingBytes = this.read(path);
 
-        // TODO: fix writing with "long" offset
+        if (offset > Integer.MAX_VALUE) {
+            throw new InputOutputException("Offset in DHT does not support long values");
+        }
+
         int intOffset = (int) offset;
 
         int newTotalSize;
@@ -308,8 +311,11 @@ public abstract class BaseDhtStorageAdapter {
             contents = futureGet.data().toBytes();
         }
 
+        if (offset > Integer.MAX_VALUE) {
+            throw new InputOutputException("Offset in DHT does not support long values");
+        }
+
         // check offset to be smaller than the fetched content
-        // TODO: fix int conversion
         int srcPos = Math.min(contents.length, (int) offset);
 
         // check length to be smaller than the fetched content
